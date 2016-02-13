@@ -1,0 +1,47 @@
+Update 20160212: Built binaries for OpenELEC on WeTek Play, Raspberry Pi, RPi2, and generic x86_64. Still working on cross compiling for other platforms, but need some assistance..
+
+Update 20160210:
+-The Ubuntu binaries should work for 64-bit and 32-bit systems (these are different downloads!). Please test and let me know! When you click on the links for binaries you can click on "View Raw" and the zip downloads. Then you can install the zip like any other addon. Grab the right flavor for your machine/distro.
+
+Update 20160208: 
+-Took advantage of the cmake version ironic_monkey offered. The URLs below is updated to reflect the new branch.
+-Made this work with OpenELEC's build system. Now you should be able to build this for most platforms! Download package.mk from the source link. Then place it in OpenELEC.tv/packages/mediacenter/kodi-binary-addons/visualization.waveforhue.
+-Made the name more uniform - WavforHue / visualization.wavforhue (eliminating the first 'e'), it wasn't consistent until now.
+-Updated the icon to match the name.
+-Made a minor update to the code that was generating a warning.
+-Huge update for me! - visualization.waveform (on which this plugin is based) has a 1/4 flat waveform when used on a Cubox with HDMI audio out selected. I added an option in the visualization settings to adjust for the problem if desired. It's just a workaround. Rudi from the Solidrun forums identified the problem and has a patch here: 
+-Implemented a ton of new settings for what happens after the music stops and which lights to dim. Generally this addon is sending so much traffic to the Hue Bridge that only three lights can really be actively changing. More than that and the curl library starts hanging up on waiting for the Hue Bridge to respond. That causes a jerky waveform and possibly stuttering music. This will happen regardless of your hardware. It's a Hue Bridge / network limitation.
+
+-Todo: apply the slick Hue Bridge pairing used in the script.xbmc.hue.ambilight addon.
+
+---
+
+First, thanks for all the help to get to this stage. This visualization is a heavily modified version of WaveForm. It adds the ability to send beats and rotating color effects to Philips Hue lights. The purpose of this thread is for comments related to the plugin if there are ever any.
+
+Videos of the effect: https://www.youtube.com/watch?v=Yc7vfwCW5mQ
+
+Setup instructions
+1. Install the plugin from the zip or build/install it yourself from the source.
+2. Play a song and select WavforHue as your visualization
+3. Open the settings screen
+3a. Set the IP of your bridge
+3b. Set the number IDs of your lights (no spaces, separate light names with commas). These numbers can be found in your Hue mobile app under Settings -> Lights. You'll see all your lights listed. The number next to them is the number this addon requires.
+3c. Get out of the settings screen
+4. Play another song and within 30 seconds hit the bridge's button
+At this point the bridge and the plugin should be paired
+5. Play another song and the lights should be reacting to the music and shifting colors
+
+Source: https://github.com/hardyt/visualization.wavforhue
+
+Binary addon packages for OpenELEC imx6 (Cubox), Windows, Ubuntu 32 and 64-bit: https://github.com/hardyt/visualization....e/releases
+
+Also, I recommend going directly to the visualization to enhance the effect. You can do this by placing Custom_MusicFullscreenEnabled.xml in your kodi/addons/skin.confluence/720p folder (or the equivalent for the skin you are using). The contents of that xml file are:
+
+Code:
+<?xml version="1.0" encoding="UTF-8"?>
+<window type="dialog" id="3001">
+    <allowoverlay>no</allowoverlay>
+    <onload condition="!Window.IsActive(visualisation)">FullScreen</onload>
+    <visible>Player.HasAudio</visible>
+    <controls></controls>
+</window>
