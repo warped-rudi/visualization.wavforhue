@@ -7,7 +7,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR})
 find_package(kodi REQUIRED)
 find_package(CURL REQUIRED)
 
-set(WAVFORHUE_SOURCES src/Main.cpp)
+set(WAVFORHUE_SOURCES src/Main.cpp
+                      src/fft.cpp)
 
 if(WIN32)
   set(SHADER_FILES src/DefaultVertexShader.hlsl
@@ -33,30 +34,21 @@ if(WIN32)
       VERBATIM)
   endforeach(SHADER_FILE)
   add_custom_target(generate ALL DEPENDS ${SHADER_INCLUDES})
-
-  set(WAVFORHUE_SOURCES src/Main.cpp
-                         src/fft.cpp)
-  
 else()
   find_package(OpenGL)
   if(OPENGL_FOUND)
-    find_package(GLEW REQUIRED)
-    set(INCLUDES ${OpenGL_INCLUDE_DIR}
-                 ${GLEW_INCLUDE_DIR})
     add_definitions(-DHAS_OPENGL)
-    set(WAVFORHUE_SOURCES src/Main.cpp
-                           src/fft.cpp)
-    set(DEPLIBS ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES})
+    set(DEPLIBS ${OPENGL_LIBRARIES})
   else()
     find_package(OpenGLES2)
     if(OPENGLES2_FOUND)
       set(INCLUDES ${OPENGLES2_INCLUDE_DIR})
       add_definitions(-DHAS_GLES2)
       set(WAVFORHUE_SOURCES src/Main_gles.cpp
-                             src/fft.cpp
-							 src/VisGUIShader.cpp
-                             src/VisMatrixGLES.cpp
-                             src/VisShader.cpp)
+                           src/fft.cpp
+                           src/VisGUIShader.cpp
+                           src/VisMatrixGLES.cpp
+                           src/VisShader.cpp)
       set(DEPLIBS ${OPENGLES2_LIBRARIES})
     else()
       message(FATAL_ERROR "No rendering API found. Bailing")
