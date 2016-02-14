@@ -4,3 +4,6 @@ v0.0.1
 v0.0.2
 - cmake version
 - workaround for audiodata not presenting correctly through the visualization api on Cubox (imx6) using HDMI audio output
+
+v0.0.3
+- multithreaded (seems to break on Android..)

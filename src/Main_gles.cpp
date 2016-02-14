@@ -27,7 +27,7 @@
 */
 
 
-
+#include <thread>
 #include <string.h>
 #include <cmath>
 #if defined(__APPLE__)
@@ -39,6 +39,7 @@
 #endif
 
 #include "xbmc_vis_dll.h"
+
 #include "VisGUIShader.h"
 
 //th
@@ -97,8 +98,7 @@ CVisGUIShader  *vis_shader = NULL;
 //th
 #define BUFFERSIZE 1024
 #define NUM_FREQUENCIES (512)
-CURL *curl;
-CURLcode res;
+
 
 namespace
 {
@@ -143,9 +143,6 @@ float g_movingAvgMidSum;
 //th - settings used throughout
 bool useWaveForm = true;
 std::string strHueBridgeIPAddress = "192.168.10.6";
-std::string strHost = "Host: " + strHueBridgeIPAddress;
-std::string strURLRegistration = "http://" + strHueBridgeIPAddress + "/api";
-std::string strURLLight, strJson;
 std::vector<std::string> activeLightIDs, dimmedLightIDs, afterLightIDs;
 int numberOfActiveLights = 3, numberOfDimmedLights = 2, numberOfAfterLights = 1;
 int lastHue, initialHue, targetHue, maxBri, targetBri;
@@ -165,6 +162,23 @@ API for that architecture.
 int iMaxAudioData_i = 256;
 float fMaxAudioData = 255.0f;
 
+
+/*
+ADDON::CHelper_libXBMC_addon *XBMC           = NULL;
+bool registerHelper(void* hdl)
+{
+  if (!XBMC)
+    XBMC = new ADDON::CHelper_libXBMC_addon;
+
+  if (!XBMC->RegisterMe(hdl))
+  {
+    delete XBMC, XBMC=NULL;
+    return false;
+  }
+
+  return true;
+}
+*/
 
 
 struct timespec systemClock;
@@ -194,8 +208,18 @@ void hsvToRgb(float h, float s, float v, float _rgb[]) {
   _rgb[2] = b;
 }
 
+size_t noop_cb(void *ptr, size_t size, size_t nmemb, void *data) {
+  return size * nmemb;
+}
+
+
 void HTTP_POST(int bri, int sat, int hue, int transitionTime, std::vector<std::string> lightIDs, int numberOfLights, bool on, bool off)
 {
+  std::string strURLLight, strJson;
+  
+  CURL *curl;
+  CURLcode res;
+  curl = curl_easy_init();
 
   if (on) //turn on
     strJson = "{\"on\":true}";
@@ -218,23 +242,27 @@ void HTTP_POST(int bri, int sat, int hue, int transitionTime, std::vector<std::s
   }
 
   if (curl) {
-    //append headers
-
     // Now specify we want to PUT data, but not using a file, so it has o be a CUSTOMREQUEST
+    curl_easy_setopt(curl, CURLOPT_TCP_NODELAY, 1);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 3L);
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, noop_cb);
     //curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, strJson.c_str());
-
     for (int i = 0; i < numberOfLights; i++)
     {
       strURLLight = "http://" + strHueBridgeIPAddress +
         "/api/KodiVisWave/lights/" + lightIDs[i] + "/state";
       // Set the URL that is about to receive our POST. 
+      //printf("Sent %s to %s\n", strJson.c_str(), strURLLight.c_str());
       curl_easy_setopt(curl, CURLOPT_URL, strURLLight.c_str());
       // Perform the request, res will get the return code
       res = curl_easy_perform(curl);
     }
   }
+
+  // always cleanup curl
+  curl_easy_cleanup(curl);
 }
 
 void TurnLightsOn(std::vector<std::string> lightIDs, int numberOfLights)
@@ -249,7 +277,9 @@ void TurnLightsOff(std::vector<std::string> lightIDs, int numberOfLights)
 
 void UpdateLights(int bri, int sat, int hue, int transitionTime, std::vector<std::string> lightIDs, int numberOfLights)
 {
-  HTTP_POST(bri, sat, hue, transitionTime, lightIDs, numberOfLights, false, false);
+  //HTTP_POST(bri, sat, hue, transitionTime, lightIDs, numberOfLights, false, false);
+  //run this as a seperate thread so it doesn't bog down the system
+  std::thread (HTTP_POST, bri, sat, hue, transitionTime, lightIDs, numberOfLights, false, false).detach();
 }
 
 void AdjustBrightness() //nicely bring the brightness up or down
@@ -522,6 +552,13 @@ void UpdateTime()
 //-----------------------------------------------------------------------------
 ADDON_STATUS ADDON_Create(void* hdl, void* props)
 {
+
+  /*
+  if (!registerHelper(hdl))
+    return ADDON_STATUS_PERMANENT_FAILURE;
+  //XBMC->Log(ADDON::LOG_INFO, "WavforHue: Logging works.");
+  */
+
   if (!props)
     return ADDON_STATUS_UNKNOWN;
 
@@ -552,33 +589,40 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
 //-----------------------------------------------------------------------------
 extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, const char* szSongName)
 {
+
+  std::string strURLRegistration = "http://" + strHueBridgeIPAddress + "/api";
+
+  CURL *curl;
+  CURLcode res;
+
   //set Hue registration command
   const char json[] = "{\"devicetype\":\"Kodi\",\"username\":\"KodiVisWave\"}";
 
   //struct curl_slist *headers = NULL;
+  //XBMC->Log(ADDON::LOG_INFO, "WavforHue: checkpoint 1");
   curl = curl_easy_init();
-  if (curl) {
-    curl_easy_setopt(curl, CURLOPT_TCP_NODELAY, 1);
-    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
-    //curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json);
+  curl_easy_setopt(curl, CURLOPT_TCP_NODELAY, 1);
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20L);
+  curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json);
+  // Set the URL that is about to receive our POST.
+  curl_easy_setopt(curl, CURLOPT_URL, strURLRegistration.c_str());
+  // Perform the request, res will get the return code
+  res = curl_easy_perform(curl);
+  // always cleanup curl
+  curl_easy_cleanup(curl);
 
-    // Set the URL that is about to receive our POST.
-    curl_easy_setopt(curl, CURLOPT_URL, strURLRegistration.c_str());
-
-    // Perform the request, res will get the return code
-    res = curl_easy_perform(curl);
-
-    // always cleanup (at the end)
-  }
 
   //turn the Active lights on
   TurnLightsOn(activeLightIDs, numberOfActiveLights);
   UpdateLights(currentBri, 255, lastHue, 30, activeLightIDs, numberOfActiveLights);
   
-  //dim the other lights
-  TurnLightsOn(dimmedLightIDs, numberOfDimmedLights);
-  UpdateLights(dimmedBri, dimmedSat, dimmedHue, 30, dimmedLightIDs, numberOfDimmedLights);
+  if(numberOfDimmedLights>0)
+  {
+    //dim the other lights
+    TurnLightsOn(dimmedLightIDs, numberOfDimmedLights);
+    UpdateLights(dimmedBri, dimmedSat, dimmedHue, 30, dimmedLightIDs, numberOfDimmedLights);
+  }
 
   //initialize the beat detection
   InitTime();
@@ -807,22 +851,27 @@ extern "C" void ADDON_Destroy()
   usleep(500);
   if(lightsOnAfter)
   {
-	TurnLightsOff(activeLightIDs, numberOfActiveLights);
-	TurnLightsOff(dimmedLightIDs, numberOfDimmedLights);
-	usleep(200);	
-	TurnLightsOn(afterLightIDs, numberOfAfterLights);
-	UpdateLights(afterBri, afterSat, afterHue, 30, afterLightIDs, numberOfAfterLights);
+    TurnLightsOff(activeLightIDs, numberOfActiveLights);
+    if(numberOfDimmedLights>0)
+    {
+      TurnLightsOff(dimmedLightIDs, numberOfDimmedLights);
+    }
+    usleep(200);	
+    TurnLightsOn(afterLightIDs, numberOfAfterLights);
+    UpdateLights(afterBri, afterSat, afterHue, 30, afterLightIDs, numberOfAfterLights);
   }
   else
   {
-	TurnLightsOff(activeLightIDs, numberOfActiveLights);
-	TurnLightsOff(dimmedLightIDs, numberOfDimmedLights);
+    TurnLightsOff(activeLightIDs, numberOfActiveLights);
+    if(numberOfDimmedLights>0)
+    {
+      TurnLightsOff(dimmedLightIDs, numberOfDimmedLights);
+    }
   }
   
   g_fftobj.CleanUp();
   
-  // always cleanup curl
-  curl_easy_cleanup(curl);
+  //XBMC=NULL;
 }
 
 //-- HasSettings --------------------------------------------------------------
@@ -877,7 +926,6 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
     char* array;
     array = (char*)value;
     strHueBridgeIPAddress = std::string(array);
-    strURLRegistration = "http://" + strHueBridgeIPAddress + "/api";
   }
 //----------------------------------------------------------  
   else if (strcmp(strSetting, "ActiveLights") == 0)
@@ -926,7 +974,15 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
     }
     //do the last light token
     dimmedLightIDs.push_back(dimmedLightIDsUnsplit.substr(last));
-    numberOfDimmedLights = dimmedLightIDs.size();
+    dimmedLightIDs.push_back(dimmedLightIDsUnsplit.substr(last));
+    if(dimmedLightIDs[0].size() == 0)
+    {
+      numberOfDimmedLights = 0;
+    }
+    else
+    {
+      numberOfDimmedLights = dimmedLightIDs.size();
+    }
   }
   else if (strcmp(strSetting, "DimmedBri") == 0)
     dimmedBri = *(int*)value;
