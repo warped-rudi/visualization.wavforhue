@@ -212,15 +212,37 @@ size_t noop_cb(void *ptr, size_t size, size_t nmemb, void *data) {
   return size * nmemb;
 }
 
-
-void HTTP_POST(int bri, int sat, int hue, int transitionTime, std::vector<std::string> lightIDs, int numberOfLights, bool on, bool off)
+void putWorkerThread(std::string m_strJson, std::string lightID, std::string m_strHueBridgeIPAddress)
 {
-  std::string strURLLight, strJson;
-  
-  CURL *curl;
-  CURLcode res;
-  curl = curl_easy_init();
+  std::string strURLLight;
+  CURL *curl = curl_easy_init();
 
+  if (curl) 
+  {
+    strURLLight = "http://" + m_strHueBridgeIPAddress +
+      "/api/KodiVisWave/lights/" + lightID + "/state";
+    CURLcode res;
+    // Now specify we want to PUT data, but not using a file, so it has o be a CUSTOMREQUEST
+    curl_easy_setopt(curl, CURLOPT_TCP_NODELAY, 1);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 3L);
+    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, noop_cb);
+    //curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, m_strJson.c_str());
+    // Set the URL that is about to receive our POST. 
+    //printf("Sent %s to %s\n", strJson.c_str(), strURLLight.c_str());
+    curl_easy_setopt(curl, CURLOPT_URL, strURLLight.c_str());
+    // Perform the request, res will get the return code
+    res = curl_easy_perform(curl);
+    // always cleanup curl
+    curl_easy_cleanup(curl);
+  }
+}
+
+void putMainThread(int bri, int sat, int hue, int transitionTime, std::vector<std::string> lightIDs, int numberOfLights, bool on, bool off)
+{
+  std::string strJson;
+  
   if (on) //turn on
     strJson = "{\"on\":true}";
   else if (off) //turn light off
@@ -241,45 +263,27 @@ void HTTP_POST(int bri, int sat, int hue, int transitionTime, std::vector<std::s
     strJson = oss.str();
   }
 
-  if (curl) {
-    // Now specify we want to PUT data, but not using a file, so it has o be a CUSTOMREQUEST
-    curl_easy_setopt(curl, CURLOPT_TCP_NODELAY, 1);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 3L);
-    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, noop_cb);
-    //curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, strJson.c_str());
-    for (int i = 0; i < numberOfLights; i++)
-    {
-      strURLLight = "http://" + strHueBridgeIPAddress +
-        "/api/KodiVisWave/lights/" + lightIDs[i] + "/state";
-      // Set the URL that is about to receive our POST. 
-      //printf("Sent %s to %s\n", strJson.c_str(), strURLLight.c_str());
-      curl_easy_setopt(curl, CURLOPT_URL, strURLLight.c_str());
-      // Perform the request, res will get the return code
-      res = curl_easy_perform(curl);
-    }
+  for (int i = 0; i < numberOfLights; i++)
+  {
+    //threading here segfaults upon addon destroy
+    //std::thread (putWorkerThread, strJson, lightIDs[i], strHueBridgeIPAddress).detach();  
+    putWorkerThread(strJson, lightIDs[i], strHueBridgeIPAddress);
   }
-
-  // always cleanup curl
-  curl_easy_cleanup(curl);
 }
 
 void TurnLightsOn(std::vector<std::string> lightIDs, int numberOfLights)
 {
-  HTTP_POST(0, 0, 0, 0, lightIDs, numberOfLights, true, false);
+  putMainThread(0, 0, 0, 0, lightIDs, numberOfLights, true, false);
 }
 
 void TurnLightsOff(std::vector<std::string> lightIDs, int numberOfLights)
 {
-  HTTP_POST(0, 0, 0, 0, lightIDs, numberOfLights, false, true);
+  putMainThread(0, 0, 0, 0, lightIDs, numberOfLights, false, true);
 }
 
 void UpdateLights(int bri, int sat, int hue, int transitionTime, std::vector<std::string> lightIDs, int numberOfLights)
 {
-  //HTTP_POST(bri, sat, hue, transitionTime, lightIDs, numberOfLights, false, false);
-  //run this as a seperate thread so it doesn't bog down the system
-  std::thread (HTTP_POST, bri, sat, hue, transitionTime, lightIDs, numberOfLights, false, false).detach();
+  std::thread (putMainThread, bri, sat, hue, transitionTime, lightIDs, numberOfLights, false, false).detach();
 }
 
 void AdjustBrightness() //nicely bring the brightness up or down
@@ -603,6 +607,7 @@ extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, con
   curl = curl_easy_init();
   curl_easy_setopt(curl, CURLOPT_TCP_NODELAY, 1);
   curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20L);
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, noop_cb);
   curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json);
   // Set the URL that is about to receive our POST.
