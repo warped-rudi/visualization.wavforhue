@@ -39,7 +39,6 @@
 #endif
 
 #include "xbmc_vis_dll.h"
-
 #include "VisGUIShader.h"
 
 //th
@@ -69,29 +68,29 @@ GLenum  g_mode = GL_TRIANGLES;
 float g_fWaveform[2][512];
 
 const char *frag = "precision mediump float; \n"
-"varying lowp vec4 m_colour; \n"
-"void main () \n"
-"{ \n"
-"  gl_FragColor = m_colour; \n"
-"}\n";
+                   "varying lowp vec4 m_colour; \n"
+                   "void main () \n"
+                   "{ \n"
+                   "  gl_FragColor = m_colour; \n"
+                   "}\n";
 
 const char *vert = "attribute vec4 m_attrpos;\n"
-"attribute vec4 m_attrcol;\n"
-"attribute vec4 m_attrcord0;\n"
-"attribute vec4 m_attrcord1;\n"
-"varying vec4   m_cord0;\n"
-"varying vec4   m_cord1;\n"
-"varying lowp   vec4 m_colour;\n"
-"uniform mat4   m_proj;\n"
-"uniform mat4   m_model;\n"
-"void main ()\n"
-"{\n"
-"  mat4 mvp    = m_proj * m_model;\n"
-"  gl_Position = mvp * m_attrpos;\n"
-"  m_colour    = m_attrcol;\n"
-"  m_cord0     = m_attrcord0;\n"
-"  m_cord1     = m_attrcord1;\n"
-"}\n";
+                   "attribute vec4 m_attrcol;\n"
+                   "attribute vec4 m_attrcord0;\n"
+                   "attribute vec4 m_attrcord1;\n"
+                   "varying vec4   m_cord0;\n"
+                   "varying vec4   m_cord1;\n"
+                   "varying lowp   vec4 m_colour;\n"
+                   "uniform mat4   m_proj;\n"
+                   "uniform mat4   m_model;\n"
+                   "void main ()\n"
+                   "{\n"
+                   "  mat4 mvp    = m_proj * m_model;\n"
+                   "  gl_Position = mvp * m_attrpos;\n"
+                   "  m_colour    = m_attrcol;\n"
+                   "  m_cord0     = m_attrcord0;\n"
+                   "  m_cord1     = m_attrcord1;\n"
+                   "}\n";
 
 CVisGUIShader  *vis_shader = NULL;
 
@@ -363,7 +362,6 @@ float AdjustRateToFPS(float per_frame_decay_rate_at_fps1, float fps1, float actu
 //taken from Vortex
 void AnalyzeSound()
 {
-
   int m_fps = 60;
 
   // sum (left channel) spectrum up into 3 bands
@@ -556,7 +554,6 @@ void UpdateTime()
 //-----------------------------------------------------------------------------
 ADDON_STATUS ADDON_Create(void* hdl, void* props)
 {
-
   /*
   if (!registerHelper(hdl))
     return ADDON_STATUS_PERMANENT_FAILURE;
@@ -584,8 +581,7 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
   dimmedLightIDs.push_back("5");
   afterLightIDs.push_back("4");
 
-  //should this be ADDON_STATUS_NEED_SAVEDSETTINGS or ADDON_STATUS_NEED_SETTINGS?
-  return ADDON_STATUS_NEED_SETTINGS;
+  return ADDON_STATUS_NEED_SAVEDSETTINGS;
 }
 
 //-- Start --------------------------------------------------------------------
@@ -729,6 +725,7 @@ extern "C" void Render()
     glEnableVertexAttribArray(posLoc);
     glEnableVertexAttribArray(colLoc);
 
+    // Left channel
     for (int i = 0; i < iMaxAudioData_i; i++)
     {
       col[i][0] = rgb[0];
@@ -773,7 +770,9 @@ extern "C" void Render()
     vis_shader->PopMatrix();
 
     glEnable(GL_BLEND);
+
   }
+
   //get some interesting numbers to play with
   UpdateTime();
   g_timePass = fElapsedAppTime;

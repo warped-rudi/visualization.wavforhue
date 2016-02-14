@@ -25,7 +25,14 @@
 #include <stdio.h>
 #ifdef HAS_OPENGL
 #include "xbmc_vis_dll.h" //so I can build for windows
-#include <GL/glew.h>
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
+#include <OpenGL/glu.h>
+#else
+#include <GL/gl.h>
+#include <GL/glu.h>
+//#include <GL/glew.h>
+#endif
 #include <unistd.h>
 #else
 #ifdef _WIN32
@@ -49,42 +56,108 @@
 
 char g_visName[512];
 #ifndef HAS_OPENGL
-LPDIRECT3DDEVICE9 g_device;
+//LPDIRECT3DDEVICE9 g_device;
+ID3D11Device*             g_device = NULL;
+ID3D11DeviceContext*      g_context = NULL;
+ID3D11VertexShader*       g_vShader = NULL;
+ID3D11PixelShader*        g_pShader = NULL;
+ID3D11InputLayout*        g_inputLayout = NULL;
+ID3D11Buffer*             g_vBuffer = NULL;
+ID3D11Buffer*             g_cViewPort = NULL;
+
+using namespace DirectX;
+using namespace DirectX::PackedVector;
+
+// Include the precompiled shader code.
+namespace
+{
+  #include "DefaultPixelShader.inc"
+  #include "DefaultVertexShader.inc"
+}
+
+struct cbViewPort
+{
+  float g_viewPortWidth;
+  float g_viewPortHeigh;
+  float align1, align2;
+};
+
 #else
 void* g_device;
 #endif
+
 float g_fWaveform[2][512];
 
 #ifdef HAS_OPENGL
 typedef struct {
-  int X;
-  int Y;
+  int TopLeftX;
+  int TopLeftY;
   int Width;
   int Height;
-  int MinZ;
-  int MaxZ;
-} D3DVIEWPORT9;
+  int MinDepth;
+  int MaxDepth;
+} D3D11_VIEWPORT;
 typedef unsigned long D3DCOLOR;
 #endif
 
-D3DVIEWPORT9  g_viewport;
+D3D11_VIEWPORT g_viewport;
 
 struct Vertex_t
 {
   float x, y, z;
+#ifdef HAS_OPENGL
   D3DCOLOR  col;
+#else
+  XMFLOAT4 col;
+#endif
 };
 
 #ifndef HAS_OPENGL
-#define VERTEX_FORMAT     (D3DFVF_XYZ | D3DFVF_DIFFUSE)
-#endif
+bool init_renderer_objs()
+{
+  // Create vertex shader
+  if (S_OK != g_device->CreateVertexShader(DefaultVertexShaderCode, sizeof(DefaultVertexShaderCode), nullptr, &g_vShader))
+    return false;
+
+  // Create input layout
+  D3D11_INPUT_ELEMENT_DESC layout[] =
+  {
+    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+  };
+  if (S_OK != g_device->CreateInputLayout(layout, ARRAYSIZE(layout), DefaultVertexShaderCode, sizeof(DefaultVertexShaderCode), &g_inputLayout))
+    return false;
+
+  // Create pixel shader
+  if (S_OK != g_device->CreatePixelShader(DefaultPixelShaderCode, sizeof(DefaultPixelShaderCode), nullptr, &g_pShader))
+    return false;
+
+  // create buffers
+  CD3D11_BUFFER_DESC desc(sizeof(Vertex_t) * 512, D3D11_BIND_VERTEX_BUFFER, D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE);
+  if (S_OK != g_device->CreateBuffer(&desc, NULL, &g_vBuffer))
+    return false;
+
+  desc.ByteWidth = sizeof(cbViewPort);
+  desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+  desc.Usage = D3D11_USAGE_DEFAULT;
+  desc.CPUAccessFlags = 0;
+
+  cbViewPort viewPort = { (float)g_viewport.Width, (float)g_viewport.Height, 0.0f, 0.0f };
+  D3D11_SUBRESOURCE_DATA initData;
+  initData.pSysMem = &viewPort;
+
+  if (S_OK != g_device->CreateBuffer(&desc, &initData, &g_cViewPort))
+    return false;
+
+  // we are ready
+  return true;
+}
+#endif // !HAS_OPENGL
 
 //th
 #define BUFFERSIZE 1024
 #define NUM_FREQUENCIES (512)
-//th - curl stuff
-//hopefully no one will have more than 100 lights? 
-//I'm following the example at https://curl.haxx.se/libcurl/c/multi-app.html
+
 
 namespace
 {
@@ -137,7 +210,7 @@ int numberOfActiveLights = 3, numberOfDimmedLights = 2, numberOfAfterLights = 1;
 int lastHue, initialHue, targetHue, maxBri, targetBri;
 int currentBri = 75;
 float beatThreshold = 0.25f;
-int dimmedBri = 10, dimmedSat = 100, dimmedHue = 65280;
+int dimmedBri = 10, dimmedSat = 255, dimmedHue = 65280;
 int afterBri = 25, afterSat = 255, afterHue = 65280;
 bool lightsOnAfter = false;
 bool cuboxHDMIFix = false;
@@ -615,17 +688,21 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
 
   VIS_PROPS* visProps = (VIS_PROPS*)props;
 
-#ifndef HAS_OPENGL  
-  g_device = (LPDIRECT3DDEVICE9)visProps->device;
-#else
+#ifdef HAS_OPENGL
   g_device = visProps->device;
 #endif
-  g_viewport.X = visProps->x;
-  g_viewport.Y = visProps->y;
+  g_viewport.TopLeftX = visProps->x;
+  g_viewport.TopLeftY = visProps->y;
   g_viewport.Width = visProps->width;
   g_viewport.Height = visProps->height;
-  g_viewport.MinZ = 0;
-  g_viewport.MaxZ = 1;
+  g_viewport.MinDepth = 0;
+  g_viewport.MaxDepth = 1;
+#ifndef HAS_OPENGL  
+  g_context = (ID3D11DeviceContext*)visProps->device;
+  g_context->GetDevice(&g_device);
+  if (!init_renderer_objs())
+    return ADDON_STATUS_PERMANENT_FAILURE;
+#endif
 
 
   activeLightIDs.push_back("1");
@@ -635,8 +712,6 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
   dimmedLightIDs.push_back("5");  
   afterLightIDs.push_back("4");
 
-
-  //should this be ADDON_STATUS_NEED_SAVEDSETTINGS or ADDON_STATUS_NEED_SETTINGS?
   return ADDON_STATUS_NEED_SAVEDSETTINGS;
 }
 
@@ -707,8 +782,8 @@ extern "C" void AudioData(const float* pAudioData, int iAudioDataLength, float *
   {
     for (int i = 0; i < iAudioDataLength; i += 2)
     {
-      g_fWaveform[0][ipos] = pAudioData[i]; // left channel
-      g_fWaveform[1][ipos] = pAudioData[i + 1]; // right channel
+      g_fWaveform[0][ipos] = pAudioData[i  ]; // left channel
+      g_fWaveform[1][ipos] = pAudioData[i+1]; // right channel
       ipos++;
       if (ipos >= 512) break;
     }
@@ -751,11 +826,16 @@ extern "C" void Render()
     Vertex_t  verts[512];
 
 #ifndef HAS_OPENGL
-    g_device->SetFVF(VERTEX_FORMAT);
-    g_device->SetPixelShader(NULL);
+    unsigned stride = sizeof(Vertex_t), offset = 0;
+    g_context->IASetVertexBuffers(0, 1, &g_vBuffer, &stride, &offset);
+    g_context->IASetInputLayout(g_inputLayout);
+    g_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP);
+    g_context->VSSetShader(g_vShader, 0, 0);
+    g_context->VSSetConstantBuffers(0, 1, &g_cViewPort);
+    g_context->PSSetShader(g_pShader, 0, 0);
+    float xcolor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 #endif
 
-    // Left channel
 #ifdef HAS_OPENGL
     GLenum errcode;
     //glColor3f(1.0, 1.0, 1.0);
@@ -765,44 +845,49 @@ extern "C" void Render()
     glTranslatef(0, 0, -1.0);
     glBegin(GL_LINE_STRIP);
 #endif
-	// Left channel
+
+    // Left (upper) channel
     for (int i = 0; i < iMaxAudioData_i; i++)
     {
 #ifndef HAS_OPENGL
-      verts[i].col = D3DCOLOR_COLORVALUE(rgb[0], rgb[1], rgb[2], 1.0);
+      //verts[i].col = D3DCOLOR_COLORVALUE(rgb[0], rgb[1], rgb[2], 1.0f);
+      verts[i].col = XMFLOAT4(rgb[0], rgb[1], rgb[2], 1.0f);
 #else
+      //need to fix this from white, but how
       verts[i].col = 0xffffffff;
 #endif
-      verts[i].x = g_viewport.X + ((i / fMaxAudioData) * g_viewport.Width);
-      verts[i].y = g_viewport.Y + g_viewport.Height * 0.33f + (g_fWaveform[0][i] * g_viewport.Height * 0.15f);
+      verts[i].x = g_viewport.TopLeftX + ((i / fMaxAudioData) * g_viewport.Width);
+      verts[i].y = g_viewport.TopLeftY + g_viewport.Height * 0.33f + (g_fWaveform[0][i] * g_viewport.Height * 0.15f);
       verts[i].z = 1.0;
 #ifdef HAS_OPENGL
       glVertex2f(verts[i].x, verts[i].y);
 #endif
     }
-
 #ifdef HAS_OPENGL
     glEnd();
     if ((errcode = glGetError()) != GL_NO_ERROR) {
       printf("Houston, we have a GL problem: %s\n", gluErrorString(errcode));
     }
-#elif !defined(HAS_OPENGL)
-    g_device->DrawPrimitiveUP(D3DPT_LINESTRIP, iMaxAudioData_i-1, verts, sizeof(Vertex_t));
 #endif
 
-    // Right channel
+
+    // Right (lower) channel -problem
 #ifdef HAS_OPENGL
     glBegin(GL_LINE_STRIP);
-#endif
     for (int i = 0; i < iMaxAudioData_i; i++)
+#else
+    for (int i = iMaxAudioData_i; i < iMaxAudioData_i*2; i++) //not sure if this will work..
+#endif
     {
 #ifndef HAS_OPENGL
-      verts[i].col = D3DCOLOR_COLORVALUE(rgb[0], rgb[1], rgb[2], 1.0);
+      verts[i].col = XMFLOAT4(rgb[0], rgb[1], rgb[2], 1.0f);
+      verts[i].x = g_viewport.TopLeftX + ((i / fMaxAudioData) * g_viewport.Width);
 #else
+      //need to fix this from white? but how
       verts[i].col = 0xffffffff;
+      verts[i].x = g_viewport.TopLeftX + ((i / fMaxAudioData) * g_viewport.Width);
 #endif
-      verts[i].x = g_viewport.X + ((i / fMaxAudioData) * g_viewport.Width);
-      verts[i].y = g_viewport.Y + g_viewport.Height * 0.66f + (g_fWaveform[1][i] * g_viewport.Height * 0.15f);
+      verts[i].y = g_viewport.TopLeftY + g_viewport.Height * 0.66f + (g_fWaveform[1][i] * g_viewport.Height * 0.15f);
       verts[i].z = 1.0;
 #ifdef HAS_OPENGL
       glVertex2f(verts[i].x, verts[i].y);
@@ -816,8 +901,21 @@ extern "C" void Render()
     if ((errcode = glGetError()) != GL_NO_ERROR) {
       printf("Houston, we have a GL problem: %s\n", gluErrorString(errcode));
     }
-#elif !defined(HAS_OPENGL)
-    g_device->DrawPrimitiveUP(D3DPT_LINESTRIP, iMaxAudioData_i-1, verts, sizeof(Vertex_t));
+#endif
+
+
+#ifndef HAS_OPENGL
+    // a little optimization: generate and send all vertecies for both channels
+    D3D11_MAPPED_SUBRESOURCE res;
+    if (S_OK == g_context->Map(g_vBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &res))
+    {
+      memcpy(res.pData, verts, sizeof(Vertex_t) * iMaxAudioData_i*2);
+      g_context->Unmap(g_vBuffer, 0);
+    }
+    // draw left channel
+    g_context->Draw(iMaxAudioData_i, 0);
+    // draw right channel
+    g_context->Draw(iMaxAudioData_i, iMaxAudioData_i);
 #endif
   }
 
@@ -834,14 +932,6 @@ extern "C" void GetInfo(VIS_INFO* pInfo)
 {
   pInfo->bWantsFreq = false;
   pInfo->iSyncDelay = 0;
-}
-
-//-- GetSubModules ------------------------------------------------------------
-// Return any sub modules supported by this vis
-//-----------------------------------------------------------------------------
-extern "C" unsigned int GetSubModules(char ***names)
-{
-  return 0; // this vis supports 0 sub modules
 }
 
 //-- OnAction -----------------------------------------------------------------
@@ -870,11 +960,19 @@ extern "C" unsigned GetPreset()
 }
 
 //-- IsLocked -----------------------------------------------------------------
-// Returns true if this add-on use settings
+// Returns true if this add-on uses settings
 //-----------------------------------------------------------------------------
 extern "C" bool IsLocked()
 {
   return true;
+}
+
+//-- GetSubModules ------------------------------------------------------------
+// Return any sub modules supported by this vis
+//-----------------------------------------------------------------------------
+extern "C" unsigned int GetSubModules(char ***names)
+{
+  return 0; // this vis supports 0 sub modules
 }
 
 //-- Stop ---------------------------------------------------------------------
@@ -891,6 +989,21 @@ extern "C" void ADDON_Stop()
 //-----------------------------------------------------------------------------
 extern "C" void ADDON_Destroy()
 {
+
+#ifndef HAS_OPENGL
+  if (g_cViewPort)
+    g_cViewPort->Release();
+  if (g_vBuffer)
+    g_vBuffer->Release();
+  if (g_inputLayout)
+    g_inputLayout->Release();
+  if (g_vShader)
+    g_vShader->Release();
+  if (g_pShader)
+    g_pShader->Release();
+  if (g_device)
+    g_device->Release();
+#endif
 
   //change the lights to something acceptable
   //wait a second to allow the Hue Bridge to catch up
