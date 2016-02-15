@@ -39,7 +39,6 @@
 #include <d3d11_1.h>
 #include <DirectXMath.h>
 #include <DirectXPackedVector.h>
-#include <windows.h>
 #ifndef curl_socket_typedef
 /* socket typedef */
 #include <winsock2.h>
@@ -48,6 +47,7 @@ typedef SOCKET curl_socket_t;
 #endif
 //#include "addons/include/xbmc_vis_dll.h"
 #include "xbmc_vis_dll.h"
+#include <windows.h>
 #endif
 #endif
 
@@ -520,9 +520,9 @@ void AnalyzeSound()
   float newTreble = ((g_sound.avg[0][2] - g_sound.med_avg[0][2]) / g_sound.med_avg[0][2]) * 2;
 
 #ifdef _WIN32
-  newBass = max(min(newBass, 1.0f), -1.0f);
-  newMiddle = max(min(newMiddle, 1.0f), -1.0f);
-  newTreble = max(min(newTreble, 1.0f), -1.0f);
+  newBass = std::max(min(newBass, 1.0f), -1.0f);
+  newMiddle = std::max(min(newMiddle, 1.0f), -1.0f);
+  newTreble = std::max(min(newTreble, 1.0f), -1.0f);
 #else
   newBass = std::max(std::min(newBass, 1.0f), -1.0f);
   newMiddle = std::max(std::min(newMiddle, 1.0f), -1.0f);
