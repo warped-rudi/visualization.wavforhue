@@ -24,7 +24,6 @@
 #include <thread>
 #include <stdio.h>
 #ifdef HAS_OPENGL
-#include "xbmc_vis_dll.h" //so I can build for windows
 #ifdef __APPLE__
 #include <OpenGL/gl.h>
 #include <OpenGL/glu.h>
@@ -36,9 +35,6 @@
 #include <unistd.h>
 #else
 #ifdef _WIN32
-#include <d3d11_1.h>
-#include <DirectXMath.h>
-#include <DirectXPackedVector.h>
 #ifndef curl_socket_typedef
 /* socket typedef */
 #include <winsock2.h>
@@ -46,11 +42,14 @@ typedef SOCKET curl_socket_t;
 #define CURL_SOCKET_BAD INVALID_SOCKET
 #endif
 //#include "addons/include/xbmc_vis_dll.h"
-#include "xbmc_vis_dll.h"
 #include <windows.h>
 #include <algorithm>
+#include <d3d11_1.h>
+#include <DirectXMath.h>
+#include <DirectXPackedVector.h>
 #endif
 #endif
+#include "xbmc_vis_dll.h"
 
 //#include "libXBMC_addon.h"
 
@@ -346,7 +345,6 @@ void putMainThread(int bri, int sat, int hue, int transitionTime, std::vector<st
   }
 }
 
-
 void TurnLightsOn(std::vector<std::string> lightIDs, int numberOfLights)
 {
   putMainThread(0, 0, 0, 0, lightIDs, numberOfLights, true, false);
@@ -359,14 +357,17 @@ void TurnLightsOff(std::vector<std::string> lightIDs, int numberOfLights)
 
 void UpdateLights(int bri, int sat, int hue, int transitionTime, std::vector<std::string> lightIDs, int numberOfLights)
 {
-  std::thread (putMainThread, bri, sat, hue, transitionTime, lightIDs, numberOfLights, false, false).detach();
-}
-
-void UpdateLights(int bri, int sat, int hue, int transitionTime, std::vector<std::string> lightIDs, int numberOfLights)
-{
   //multithreading crashes Android randomly and Cubox imx6 upon window changes (when the addon is drestroyed)
   //std::thread (putMainThread, bri, sat, hue, transitionTime, lightIDs, numberOfLights, false, false).detach();
   putMainThread(bri, sat, hue, transitionTime, lightIDs, numberOfLights, false, false);
+}
+
+void AdjustBrightness() //nicely bring the brightness up or down
+{
+  int briDifference = currentBri - targetBri;
+  if (briDifference > 7) currentBri = currentBri - 7;
+  else if (briDifference < -7) currentBri = currentBri + 7;
+  else currentBri = targetBri;
 }
 
 void FastBeatLights()
