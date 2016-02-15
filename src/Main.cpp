@@ -520,15 +520,9 @@ void AnalyzeSound()
   float newMiddle = ((g_sound.avg[0][1] - g_sound.med_avg[0][1]) / g_sound.med_avg[0][1]) * 2;
   float newTreble = ((g_sound.avg[0][2] - g_sound.med_avg[0][2]) / g_sound.med_avg[0][2]) * 2;
 
-#ifdef _WIN32
-  newBass = std::max(min(newBass, 1.0f), -1.0f);
-  newMiddle = std::max(min(newMiddle, 1.0f), -1.0f);
-  newTreble = std::max(min(newTreble, 1.0f), -1.0f);
-#else
   newBass = std::max(std::min(newBass, 1.0f), -1.0f);
   newMiddle = std::max(std::min(newMiddle, 1.0f), -1.0f);
   newTreble = std::max(std::min(newTreble, 1.0f), -1.0f);
-#endif
 
   g_bassLast = g_bass;
   g_middleLast = g_middle;
@@ -548,15 +542,9 @@ void AnalyzeSound()
   g_middle = g_middle*avg_mix + newMiddle*(1 - avg_mix);
   //g_treble = g_treble*avg_mix + newTreble*(1 - avg_mix);
 
-#ifdef _WIN32
-  g_bass = max(min(g_bass, 1.0f), -1.0f);
-  g_middle = max(min(g_middle, 1.0f), -1.0f);
-  //g_treble = max(min(g_treble, 1.0f), -1.0f);
-#else
   g_bass = std::max(std::min(g_bass, 1.0f), -1.0f);
   g_middle = std::max(std::min(g_middle, 1.0f), -1.0f);
   //g_treble = std::max(std::min(g_treble, 1.0f), -1.0f);
-#endif
 
   if (g_middle < 0) g_middle = g_middle * -1.0f;
   if (g_bass < 0) g_bass = g_bass * -1.0f;
@@ -589,7 +577,7 @@ void InitTime()
   qwAppTime.QuadPart = 0;
   qwElapsedTime.QuadPart = 0;
   qwElapsedAppTime.QuadPart = 0;
-  srand(qwTime.QuadPart);
+  srand((unsigned int)qwTime.QuadPart);
 #else
   // Save the start time
   clock_gettime(CLOCK_MONOTONIC, &systemClock);
