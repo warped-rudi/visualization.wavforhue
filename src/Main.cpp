@@ -80,10 +80,8 @@ using namespace DirectX::PackedVector;
 // Include the precompiled shader code.
 namespace
 {
-  //#include "DefaultPixelShader.inc"
-  //#include "DefaultVertexShader.inc"
-  #include "DefaultPixelShader.hlsl"
-  #include "DefaultVertexShader.hlsl"
+  #include "DefaultPixelShader.inc"
+  #include "DefaultVertexShader.inc"
 }
 
 struct cbViewPort
