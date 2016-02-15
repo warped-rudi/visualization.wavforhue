@@ -25,13 +25,13 @@ if(WIN32)
     endif()
     set( IncFile src/${FileName}.inc )
     list( APPEND SHADER_INCLUDES ${IncFile} )
-    message(STATUS "About to compile shader file.")
     add_custom_command(
       OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${IncFile}
       COMMAND fxc /nologo /T${ShaderType}_4_0_level_9_1 /Vn ${FileName}Code /Fh ${IncFile} ${SHADER_FILE}
       MAIN_DEPENDENCY ${SHADER_FILE}
       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
       VERBATIM)
+	message(STATUS "Running command: fxc /nologo /T${ShaderType}_4_0_level_9_1 /Vn ${FileName}Code /Fh ${IncFile} ${SHADER_FILE}")
   endforeach(SHADER_FILE)
   add_custom_target(generate ALL DEPENDS ${SHADER_INCLUDES})
 else()
