@@ -48,6 +48,7 @@ typedef SOCKET curl_socket_t;
 //#include "addons/include/xbmc_vis_dll.h"
 #include "xbmc_vis_dll.h"
 #include <windows.h>
+#include <algorithm>
 #endif
 #endif
 
