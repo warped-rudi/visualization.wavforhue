@@ -38,7 +38,12 @@
 #ifdef _WIN32
 #include <D3D9.h>
 #include <windows.h>
+#ifndef curl_socket_typedef
+/* socket typedef */
 #include <winsock2.h>
+typedef SOCKET curl_socket_t;
+#define CURL_SOCKET_BAD INVALID_SOCKET
+#endif
 //#include "addons/include/xbmc_vis_dll.h"
 #include "xbmc_vis_dll.h"
 #endif
