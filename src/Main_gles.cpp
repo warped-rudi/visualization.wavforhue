@@ -211,36 +211,34 @@ size_t noop_cb(void *ptr, size_t size, size_t nmemb, void *data) {
   return size * nmemb;
 }
 
-void putWorkerThread(std::string m_strJson, std::string lightID, std::string m_strHueBridgeIPAddress)
+static void *putWorkerThread(void *json, void *url)
 {
-  std::string strURLLight;
   CURL *curl = curl_easy_init();
-
   if (curl) 
   {
-    strURLLight = "http://" + m_strHueBridgeIPAddress +
-      "/api/KodiVisWave/lights/" + lightID + "/state";
-    CURLcode res;
     // Now specify we want to PUT data, but not using a file, so it has o be a CUSTOMREQUEST
     curl_easy_setopt(curl, CURLOPT_TCP_NODELAY, 1);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, 3L);
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, noop_cb);
     //curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, m_strJson.c_str());
+    //curl_easy_setopt(curl, CURLOPT_POSTFIELDS, m_strJson.c_str());
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json);
     // Set the URL that is about to receive our POST. 
     //printf("Sent %s to %s\n", strJson.c_str(), strURLLight.c_str());
-    curl_easy_setopt(curl, CURLOPT_URL, strURLLight.c_str());
+    //curl_easy_setopt(curl, CURLOPT_URL, strURLLight.c_str());
+    curl_easy_setopt(curl, CURLOPT_URL, url);
     // Perform the request, res will get the return code
-    res = curl_easy_perform(curl);
+    curl_easy_perform(curl);
     // always cleanup curl
     curl_easy_cleanup(curl);
   }
+  return NULL;
 }
 
 void putMainThread(int bri, int sat, int hue, int transitionTime, std::vector<std::string> lightIDs, int numberOfLights, bool on, bool off)
 {
-  std::string strJson;
+  std::string strJson, strURLLight;
   
   if (on) //turn on
     strJson = "{\"on\":true}";
@@ -264,9 +262,11 @@ void putMainThread(int bri, int sat, int hue, int transitionTime, std::vector<st
 
   for (int i = 0; i < numberOfLights; i++)
   {
+    strURLLight = "http://" + strHueBridgeIPAddress +
+      "/api/KodiVisWave/lights/" + lightIDs[i] + "/state";
     //threading here segfaults upon addon destroy
-    //std::thread (putWorkerThread, strJson, lightIDs[i], strHueBridgeIPAddress).detach();  
-    putWorkerThread(strJson, lightIDs[i], strHueBridgeIPAddress);
+    std::thread (putWorkerThread, (void *)strJson.c_str(), (void *)strURLLight.c_str()).detach();
+    //putWorkerThread((void *)strJson.c_str(), (void *)strURLLight.c_str());
   }
 }
 
@@ -282,7 +282,9 @@ void TurnLightsOff(std::vector<std::string> lightIDs, int numberOfLights)
 
 void UpdateLights(int bri, int sat, int hue, int transitionTime, std::vector<std::string> lightIDs, int numberOfLights)
 {
-  std::thread (putMainThread, bri, sat, hue, transitionTime, lightIDs, numberOfLights, false, false).detach();
+  //multithreading crashes Android randomly and Cubox imx6 upon window changes (when the addon is drestroyed)
+  //std::thread (putMainThread, bri, sat, hue, transitionTime, lightIDs, numberOfLights, false, false).detach();
+  putMainThread(bri, sat, hue, transitionTime, lightIDs, numberOfLights, false, false);
 }
 
 void AdjustBrightness() //nicely bring the brightness up or down
@@ -580,6 +582,9 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
   dimmedLightIDs.push_back("4");
   dimmedLightIDs.push_back("5");
   afterLightIDs.push_back("4");
+  
+  // Must initialize libcurl before any threads are started.
+  curl_global_init(CURL_GLOBAL_ALL);
 
   return ADDON_STATUS_NEED_SAVEDSETTINGS;
 }
@@ -593,7 +598,6 @@ extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, con
   std::string strURLRegistration = "http://" + strHueBridgeIPAddress + "/api";
 
   CURL *curl;
-  CURLcode res;
 
   //set Hue registration command
   const char json[] = "{\"devicetype\":\"Kodi\",\"username\":\"KodiVisWave\"}";
@@ -609,7 +613,7 @@ extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, con
   // Set the URL that is about to receive our POST.
   curl_easy_setopt(curl, CURLOPT_URL, strURLRegistration.c_str());
   // Perform the request, res will get the return code
-  res = curl_easy_perform(curl);
+  curl_easy_perform(curl);
   // always cleanup curl
   curl_easy_cleanup(curl);
 
@@ -874,6 +878,7 @@ extern "C" void ADDON_Destroy()
   }
   
   g_fftobj.CleanUp();
+
   
   //XBMC=NULL;
 }
