@@ -36,7 +36,9 @@
 #include <unistd.h>
 #else
 #ifdef _WIN32
-#include <D3D9.h>
+#include <d3d11_1.h>
+#include <DirectXMath.h>
+#include <DirectXPackedVector.h>
 #include <windows.h>
 #ifndef curl_socket_typedef
 /* socket typedef */
