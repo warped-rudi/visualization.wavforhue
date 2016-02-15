@@ -38,6 +38,7 @@
 #ifdef _WIN32
 #include <D3D9.h>
 #include <windows.h>
+#include <winsock2.h>
 //#include "addons/include/xbmc_vis_dll.h"
 #include "xbmc_vis_dll.h"
 #endif
