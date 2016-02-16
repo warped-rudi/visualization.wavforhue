@@ -286,7 +286,8 @@ size_t noop_cb(void *ptr, size_t size, size_t nmemb, void *data) {
   return size * nmemb;
 }
 
-static void *putWorkerThread(void *json, void *url)
+//static void *putWorkerThread(void *json, void *url)
+static void *putWorkerThread(std::string json,  std::string url)
 {
   CURL *curl = curl_easy_init();
   if (curl) 
@@ -340,7 +341,8 @@ void putMainThread(int bri, int sat, int hue, int transitionTime, std::vector<st
     strURLLight = "http://" + strHueBridgeIPAddress +
       "/api/KodiVisWave/lights/" + lightIDs[i] + "/state";
     //threading here segfaults upon addon destroy
-    std::thread t(putWorkerThread, (void *)strJson.c_str(), (void *)strURLLight.c_str());
+    //std::thread t(putWorkerThread, (void *)strJson.c_str(), (void *)strURLLight.c_str());
+	std::thread t(putWorkerThread, strJson, strURLLight);
 	if(t.joinable()) 
 	{
       t.detach();
