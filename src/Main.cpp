@@ -340,7 +340,7 @@ void putMainThread(int bri, int sat, int hue, int transitionTime, std::vector<st
     strURLLight = "http://" + strHueBridgeIPAddress +
       "/api/KodiVisWave/lights/" + lightIDs[i] + "/state";
     //threading here segfaults upon addon destroy
-    std::thread (putWorkerThread, (void *)strJson.c_str(), (void *)strURLLight.c_str()).detach();
+    std::thread t({putWorkerThread((void *)strJson.c_str(), (void *)strURLLight.c_str())}).detach();
     //putWorkerThread((void *)strJson.c_str(), (void *)strURLLight.c_str());
   }
 }
