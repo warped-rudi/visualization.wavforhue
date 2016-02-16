@@ -313,7 +313,7 @@ static void *putWorkerThread()
       workerPutData = putStack.top();
       if (workerPutData.url == "exit")
       {
-        std::cout << "Exiting thread...\n";
+        //Exiting thread.
         return NULL;
       }
       else
