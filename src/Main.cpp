@@ -259,7 +259,7 @@ struct PutData
 {
   std::string url;
   std::string json;
-}
+};
 //stack for putData - pushed by the main thread, top'ed and pop'ed by the curl thread
 std::stack<PutData> putStack;
 std::thread curlThread(*putWorkerThread);
