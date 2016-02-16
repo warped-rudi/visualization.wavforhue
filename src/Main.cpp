@@ -268,8 +268,8 @@ std::thread curlThread(*putWorkerThread);
 
 #ifndef _WIN32
 struct timespec systemClock;
+void usleep(int waitTime);
 #endif
-
 
 //hsv to rgb conversion
 void hsvToRgb(float h, float s, float v, float _rgb[]) {
@@ -306,7 +306,7 @@ static void *putWorkerThread()
   {
     if (putStack.empty())
     {
-      //nop();
+      usleep(500);
     }
     else
     {
