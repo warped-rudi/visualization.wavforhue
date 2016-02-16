@@ -262,8 +262,6 @@ struct PutData
 };
 //stack for putData - pushed by the main thread, top'ed and pop'ed by the curl thread
 std::stack<PutData> putStack;
-std::thread curlThread(*putWorkerThread);
-
 
 
 #ifndef _WIN32
@@ -792,6 +790,8 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
   
   // Must initialize libcurl before any threads are started.
   curl_global_init(CURL_GLOBAL_ALL);  
+  
+  std::thread curlThread(*putWorkerThread).detach();
 
   return ADDON_STATUS_NEED_SAVEDSETTINGS;
 }
@@ -1109,16 +1109,20 @@ extern "C" void ADDON_Destroy()
     }
   }
   
+  //get the curlThread to exit
   PutData exitPutData;
   exitPutData.url = "exit";
   exitPutData.json = "";
-  putStack.push(exitPutData);  
+  putStack.push(exitPutData);
+  usleep(20);
   
+  /*
   //wait for the curl thread to finish
   if (curlThread.joinable())
   {
     curlThread.join();
   }
+  */
 
 
   g_fftobj.CleanUp();
