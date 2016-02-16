@@ -268,6 +268,9 @@ std::thread curlThread(*putWorkerThread);
 
 #ifndef _WIN32
 struct timespec systemClock;
+#endif
+
+#ifdef _WIN32
 void usleep(int waitTime);
 #endif
 
