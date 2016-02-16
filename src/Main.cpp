@@ -22,6 +22,7 @@
 // Was a simple visualisation example by MrC
 
 #include <thread>
+#include <stack>
 #include <stdio.h>
 #ifdef HAS_OPENGL
 #ifdef __APPLE__
@@ -251,6 +252,18 @@ bool registerHelper(void* hdl)
 }
 */
 
+//curl thread initialization
+// this struct will go in the stack for the curl thread to read
+static void *putWorkerThread();
+struct PutData
+{
+  std::string url;
+  std::string json;
+}
+//stack for putData - pushed by the main thread, top'ed and pop'ed by the curl thread
+std::stack<PutData> putStack;
+std::thread curlThread(*putWorkerThread);
+
 
 
 #ifndef _WIN32
@@ -286,8 +299,55 @@ size_t noop_cb(void *ptr, size_t size, size_t nmemb, void *data) {
   return size * nmemb;
 }
 
-//static void *putWorkerThread(void *json, void *url)
-static void *putWorkerThread(std::string json,  std::string url)
+static void *putWorkerThread()
+{
+  PutData workerPutData;
+  while (true)
+  {
+    if (putStack.empty())
+    {
+      //nop();
+    }
+    else
+    {
+      workerPutData = putStack.top();
+      if (workerPutData.url == "exit")
+      {
+        std::cout << "Exiting thread...\n";
+        return NULL;
+      }
+      else
+      {
+        CURL *curl = curl_easy_init();
+        if (curl) 
+        {
+          // Now specify we want to PUT data, but not using a file, so it has o be a CUSTOMREQUEST
+          curl_easy_setopt(curl, CURLOPT_TCP_NODELAY, 1);
+          curl_easy_setopt(curl, CURLOPT_TIMEOUT, 3L);
+          curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
+          curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, noop_cb);
+          //curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+          //curl_easy_setopt(curl, CURLOPT_POSTFIELDS, m_strJson.c_str());
+          curl_easy_setopt(curl, CURLOPT_POSTFIELDS, workerPutData.json.c_str());
+          // Set the URL that is about to receive our POST. 
+          //printf("Sent %s to %s\n", strJson.c_str(), strURLLight.c_str());
+          //curl_easy_setopt(curl, CURLOPT_URL, strURLLight.c_str());
+          curl_easy_setopt(curl, CURLOPT_URL, workerPutData.url.c_str());
+          // Perform the request, res will get the return code
+          curl_easy_perform(curl);
+          // always cleanup curl
+          curl_easy_cleanup(curl);
+        }        
+        putStack.pop();
+      }
+    }
+  }
+}
+
+
+/*
+static void *putWorkerThread(void *json, void *url)
+//static void *putWorkerThread(std::string json,  std::string url)
 {
   CURL *curl = curl_easy_init();
   if (curl) 
@@ -311,10 +371,12 @@ static void *putWorkerThread(std::string json,  std::string url)
   }
   return NULL;
 }
+*/
 
 void putMainThread(int bri, int sat, int hue, int transitionTime, std::vector<std::string> lightIDs, int numberOfLights, bool on, bool off)
 {
   std::string strJson, strURLLight;
+  PutData mainPutData;
   
   if (on) //turn on
     strJson = "{\"on\":true}";
@@ -340,14 +402,22 @@ void putMainThread(int bri, int sat, int hue, int transitionTime, std::vector<st
   {
     strURLLight = "http://" + strHueBridgeIPAddress +
       "/api/KodiVisWave/lights/" + lightIDs[i] + "/state";
+    
+    //put this light request on the stack
+    mainPutData.url = "strURLLight";
+    mainPutData.json = strJson;
+    putStack.push(mainPutData);
+    
+    /*
     //threading here segfaults upon addon destroy
-    //std::thread t(putWorkerThread, (void *)strJson.c_str(), (void *)strURLLight.c_str());
-	std::thread t(putWorkerThread, strJson, strURLLight);
-	if(t.joinable()) 
-	{
+    std::thread t(putWorkerThread, (void *)strJson.c_str(), (void *)strURLLight.c_str());
+    //std::thread t(putWorkerThread, strJson, strURLLight);
+    if(t.joinable()) 
+    {
       t.detach();
     }
     //putWorkerThread((void *)strJson.c_str(), (void *)strURLLight.c_str());
+    */
   }
 }
 
@@ -1035,6 +1105,18 @@ extern "C" void ADDON_Destroy()
       TurnLightsOff(dimmedLightIDs, numberOfDimmedLights);
     }
   }
+  
+  PutData exitPutData;
+  exitPutData.url = "exit";
+  exitPutData.json = "";
+  putStack.push(exitPutData);  
+  
+  //wait for the curl thread to finish
+  if (curlThread.joinable())
+  {
+    curlThread.join();
+  }
+
 
   g_fftobj.CleanUp();
 
