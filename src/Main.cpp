@@ -791,7 +791,8 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
   // Must initialize libcurl before any threads are started.
   curl_global_init(CURL_GLOBAL_ALL);  
   
-  std::thread curlThread(*putWorkerThread).detach();
+  std::thread curlThread(*putWorkerThread);
+  curlThread.detach();
 
   return ADDON_STATUS_NEED_SAVEDSETTINGS;
 }
