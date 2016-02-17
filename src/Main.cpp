@@ -23,6 +23,7 @@
 
 #include <thread>
 #include <stack>
+#include <mutex>
 #include <stdio.h>
 #ifdef HAS_OPENGL
 #ifdef __APPLE__
@@ -48,11 +49,11 @@ typedef SOCKET curl_socket_t;
 #include <d3d11_1.h>
 #include <DirectXMath.h>
 #include <DirectXPackedVector.h>
+#include <stdio.h>
 #endif
 #endif
+#include "libXBMC_addon.h"
 #include "xbmc_vis_dll.h"
-
-//#include "libXBMC_addon.h"
 
 //th
 #include <curl/curl.h>
@@ -61,6 +62,16 @@ typedef SOCKET curl_socket_t;
 #include <math.h>
 #include <sstream>
 #include <vector>
+
+/* how in God's name do you get logging working...
+extern ADDON::CHelper_libXBMC_addon *XBMC;
+using namespace ADDON;
+CHelper_libXBMC_addon *XBMC           = NULL;
+
+#ifndef SAFE_DELETE
+#define SAFE_DELETE(x)  do { delete x; x = NULL; } while (0)
+#endif
+*/
 
 //
 
@@ -235,26 +246,9 @@ int iMaxAudioData_i = 256;
 float fMaxAudioData = 255.0f;
 
 
-/*
-ADDON::CHelper_libXBMC_addon *XBMC           = NULL;
-bool registerHelper(void* hdl)
-{
-  if (!XBMC)
-    XBMC = new ADDON::CHelper_libXBMC_addon;
-
-  if (!XBMC->RegisterMe(hdl))
-  {
-    delete XBMC, XBMC=NULL;
-    return false;
-  }
-
-  return true;
-}
-*/
-
 //curl thread initialization
 // this struct will go in the stack for the curl thread to read
-static void *putWorkerThread();
+void putWorkerThread();
 struct PutData
 {
   std::string url;
@@ -262,6 +256,8 @@ struct PutData
 };
 //stack for putData - pushed by the main thread, top'ed and pop'ed by the curl thread
 std::stack<PutData> putStack;
+std::mutex mutex;
+
 
 
 #ifndef _WIN32
@@ -300,26 +296,35 @@ size_t noop_cb(void *ptr, size_t size, size_t nmemb, void *data) {
   return size * nmemb;
 }
 
-static void *putWorkerThread()
+void putWorkerThread()
 {
+  //XBMC = new CHelper_libXBMC_addon;
+  //XBMC->Log(LOG_DEBUG, "making the thread\n");
   PutData workerPutData;
   while (true)
   {
     if (putStack.empty())
     {
+      //XBMC->Log(LOG_DEBUG, "stack is empty, waiting half a second\n");
       usleep(500);
     }
     else
     {
+      //XBMC->Log(LOG_DEBUG, "exiting thread\n");
+      mutex.lock();
       workerPutData = putStack.top();
+      mutex.unlock();
       if (workerPutData.url == "exit")
       {
+
         //Exiting thread.
-        return NULL;
+        break;
       }
       else
       {
         CURL *curl = curl_easy_init();
+        CURLcode res;
+
         if (curl) 
         {
           // Now specify we want to PUT data, but not using a file, so it has o be a CUSTOMREQUEST
@@ -335,11 +340,15 @@ static void *putWorkerThread()
           //curl_easy_setopt(curl, CURLOPT_URL, strURLLight.c_str());
           curl_easy_setopt(curl, CURLOPT_URL, workerPutData.url.c_str());
           // Perform the request, res will get the return code
-          curl_easy_perform(curl);
+          res = curl_easy_perform(curl);
           // always cleanup curl
           curl_easy_cleanup(curl);
-        }        
-        putStack.pop();
+        }
+        mutex.lock();
+        if (!putStack.empty())
+          putStack.pop();
+        mutex.unlock();
+
       }
     }
   }
@@ -405,9 +414,12 @@ void putMainThread(int bri, int sat, int hue, int transitionTime, std::vector<st
       "/api/KodiVisWave/lights/" + lightIDs[i] + "/state";
     
     //put this light request on the stack
-    mainPutData.url = "strURLLight";
+    mainPutData.url = strURLLight;
     mainPutData.json = strJson;
-    putStack.push(mainPutData);
+    mutex.lock();
+    if (putStack.size() < 10)
+      putStack.push(mainPutData);
+    mutex.unlock();
     
     /*
     //threading here segfaults upon addon destroy
@@ -753,12 +765,6 @@ void usleep(int waitTime) {
 //-----------------------------------------------------------------------------
 ADDON_STATUS ADDON_Create(void* hdl, void* props)
 {
-  /*
-  if (!registerHelper(hdl))
-    return ADDON_STATUS_PERMANENT_FAILURE;
-  XBMC->Log(ADDON::LOG_ERROR, "WavforHue says hi.");
-  */
-
   if (!props)
     return ADDON_STATUS_UNKNOWN;
 
@@ -778,21 +784,7 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
   g_context->GetDevice(&g_device);
   if (!init_renderer_objs())
     return ADDON_STATUS_PERMANENT_FAILURE;
-#endif
-
-
-  activeLightIDs.push_back("1");
-  activeLightIDs.push_back("2");
-  activeLightIDs.push_back("3");
-  dimmedLightIDs.push_back("4");
-  dimmedLightIDs.push_back("5");  
-  afterLightIDs.push_back("4");
-  
-  // Must initialize libcurl before any threads are started.
-  curl_global_init(CURL_GLOBAL_ALL);  
-  
-  std::thread curlThread(*putWorkerThread);
-  curlThread.detach();
+#endif  
 
   return ADDON_STATUS_NEED_SAVEDSETTINGS;
 }
@@ -802,10 +794,20 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
 //-----------------------------------------------------------------------------
 extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, const char* szSongName)
 {
+
   std::string strURLRegistration = "http://" + strHueBridgeIPAddress + "/api";
 
   CURL *curl;
   CURLcode res;
+
+
+  activeLightIDs.push_back("1");
+  activeLightIDs.push_back("2");
+  activeLightIDs.push_back("3");
+  dimmedLightIDs.push_back("4");
+  dimmedLightIDs.push_back("5");
+  afterLightIDs.push_back("4");
+
 
   //set Hue registration command
   const char json[] = "{\"devicetype\":\"Kodi\",\"username\":\"KodiVisWave\"}";
@@ -851,6 +853,16 @@ extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, con
   {
 	iMaxAudioData_i = 180;
 	fMaxAudioData = 179.0f;
+  }
+
+  // Must initialize libcurl before any threads are started.
+  curl_global_init(CURL_GLOBAL_ALL);  
+
+  
+  std::thread curlThread(&putWorkerThread);
+  if (curlThread.joinable())
+  {
+    curlThread.detach();
   }
 }
 
@@ -926,17 +938,18 @@ extern "C" void Render()
     glPushMatrix();
     glTranslatef(0, 0, -1.0);
     glBegin(GL_LINE_STRIP);
-#endif
-
     // Left (upper) channel
     for (int i = 0; i < iMaxAudioData_i; i++)
-    {
-#ifndef HAS_OPENGL
-      //verts[i].col = D3DCOLOR_COLORVALUE(rgb[0], rgb[1], rgb[2], 1.0f);
-      verts[i].col = XMFLOAT4(rgb[0], rgb[1], rgb[2], 1.0f);
 #else
-      //need to fix this from white, but how
-      verts[i].col = 0xffffffff;
+    for (int i = 0; i < 256; i++)
+#endif
+    {
+#ifdef HAS_OPENGL
+      //verts[i].col = 0xffffffff;
+      verts[i].col = D3DCOLOR_COLORVALUE(rgb[0], rgb[1], rgb[2], 1.0f);
+#else
+      //verts[i].col = XMFLOAT4(xcolor);
+      verts[i].col = XMFLOAT4(rgb[0], rgb[1], rgb[2], 1.0f);
 #endif
       verts[i].x = g_viewport.TopLeftX + ((i / fMaxAudioData) * g_viewport.Width);
       verts[i].y = g_viewport.TopLeftY + g_viewport.Height * 0.33f + (g_fWaveform[0][i] * g_viewport.Height * 0.15f);
@@ -958,16 +971,18 @@ extern "C" void Render()
     glBegin(GL_LINE_STRIP);
     for (int i = 0; i < iMaxAudioData_i; i++)
 #else
-    for (int i = iMaxAudioData_i; i < iMaxAudioData_i*2; i++) //not sure if this will work..
+    //for (int i = iMaxAudioData_i; i < iMaxAudioData_i*2; i++) //not sure if this will work.. nope
+    for (int i = 256; i < 512; i++)
 #endif
     {
-#ifndef HAS_OPENGL
-      verts[i].col = XMFLOAT4(rgb[0], rgb[1], rgb[2], 1.0f);
+#ifdef HAS_OPENGL
+      //need to fix this from white? but how
+      //verts[i].col = 0xffffffff;
+      verts[i].col = D3DCOLOR_COLORVALUE(rgb[0], rgb[1], rgb[2], 1.0f);
       verts[i].x = g_viewport.TopLeftX + ((i / fMaxAudioData) * g_viewport.Width);
 #else
-      //need to fix this from white? but how
-      verts[i].col = 0xffffffff;
-      verts[i].x = g_viewport.TopLeftX + ((i / fMaxAudioData) * g_viewport.Width);
+      verts[i].col = XMFLOAT4(rgb[0], rgb[1], rgb[2], 1.0f);
+      verts[i].x = g_viewport.TopLeftX + (((i - 256) / 255.0f) * g_viewport.Width);
 #endif
       verts[i].y = g_viewport.TopLeftY + g_viewport.Height * 0.66f + (g_fWaveform[1][i] * g_viewport.Height * 0.15f);
       verts[i].z = 1.0;
@@ -983,21 +998,18 @@ extern "C" void Render()
     if ((errcode = glGetError()) != GL_NO_ERROR) {
       printf("Houston, we have a GL problem: %s\n", gluErrorString(errcode));
     }
-#endif
-
-
-#ifndef HAS_OPENGL
+#elif !defined(HAS_OPENGL)
     // a little optimization: generate and send all vertecies for both channels
     D3D11_MAPPED_SUBRESOURCE res;
     if (S_OK == g_context->Map(g_vBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &res))
     {
-      memcpy(res.pData, verts, sizeof(Vertex_t) * iMaxAudioData_i*2);
+      memcpy(res.pData, verts, sizeof(Vertex_t) * 512);
       g_context->Unmap(g_vBuffer, 0);
     }
     // draw left channel
-    g_context->Draw(iMaxAudioData_i, 0);
+    g_context->Draw(256, 0);
     // draw right channel
-    g_context->Draw(iMaxAudioData_i, iMaxAudioData_i);
+    g_context->Draw(256, 256);
 #endif
   }
 
@@ -1062,7 +1074,7 @@ extern "C" unsigned int GetSubModules(char ***names)
 // !!! Add-on master function !!!
 //-----------------------------------------------------------------------------
 extern "C" void ADDON_Stop()
-{
+{ 
 }
 
 //-- Detroy -------------------------------------------------------------------
@@ -1071,6 +1083,54 @@ extern "C" void ADDON_Stop()
 //-----------------------------------------------------------------------------
 extern "C" void ADDON_Destroy()
 {
+
+  //change the lights to something acceptable
+  //wait a second to allow the Hue Bridge to catch up
+  if (lightsOnAfter)
+  {
+    TurnLightsOff(activeLightIDs, numberOfActiveLights);
+    if (numberOfDimmedLights>0)
+    {
+      TurnLightsOff(dimmedLightIDs, numberOfDimmedLights);
+    }
+    TurnLightsOn(afterLightIDs, numberOfAfterLights);
+    UpdateLights(afterBri, afterSat, afterHue, 30, afterLightIDs, numberOfAfterLights);
+  }
+  else
+  {
+    TurnLightsOff(activeLightIDs, numberOfActiveLights);
+    if (numberOfDimmedLights>0)
+    {
+      TurnLightsOff(dimmedLightIDs, numberOfDimmedLights);
+    }
+  }
+
+  /*
+  mutex.lock();
+  while (!putStack.empty())
+  {
+    putStack.pop();
+  }
+  mutex.unlock();
+  */
+
+  //get the curlThread to exit
+  PutData exitPutData;
+  exitPutData.url = "exit";
+  exitPutData.json = "";
+  mutex.lock();
+  putStack.push(exitPutData);
+  mutex.unlock();
+  //usleep(10000);
+
+  /*
+  if (curlThread.joinable())
+  {
+    curlThread.join();
+  }
+  */
+
+  g_fftobj.CleanUp();
 
 #ifndef HAS_OPENGL
   if (g_cViewPort)
@@ -1086,50 +1146,7 @@ extern "C" void ADDON_Destroy()
   if (g_device)
     g_device->Release();
 #endif
-
-  //change the lights to something acceptable
-  //wait a second to allow the Hue Bridge to catch up
-  usleep(500);
-  if(lightsOnAfter)
-  {
-    TurnLightsOff(activeLightIDs, numberOfActiveLights);
-    if(numberOfDimmedLights>0)
-    {
-      TurnLightsOff(dimmedLightIDs, numberOfDimmedLights);
-    }
-    usleep(200);	
-    TurnLightsOn(afterLightIDs, numberOfAfterLights);
-    UpdateLights(afterBri, afterSat, afterHue, 30, afterLightIDs, numberOfAfterLights);
-  }
-  else
-  {
-    TurnLightsOff(activeLightIDs, numberOfActiveLights);
-    if(numberOfDimmedLights>0)
-    {
-      TurnLightsOff(dimmedLightIDs, numberOfDimmedLights);
-    }
-  }
   
-  //get the curlThread to exit
-  PutData exitPutData;
-  exitPutData.url = "exit";
-  exitPutData.json = "";
-  putStack.push(exitPutData);
-  usleep(20);
-  
-  /*
-  //wait for the curl thread to finish
-  if (curlThread.joinable())
-  {
-    curlThread.join();
-  }
-  */
-
-
-  g_fftobj.CleanUp();
-
-
-  //XBMC=NULL;
 }
 
 //-- HasSettings --------------------------------------------------------------
