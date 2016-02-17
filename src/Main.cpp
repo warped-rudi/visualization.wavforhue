@@ -947,7 +947,7 @@ extern "C" void Render()
 #ifdef HAS_OPENGL
       //verts[i].col = 0xffffffff;
       //verts[i].col = D3DCOLOR_COLORVALUE(rgb[0], rgb[1], rgb[2], 1.0f);
-      verts[i].col = glColor3f(rgb[0], rgb[1], rgb[2]);
+      verts[i].col = GL_RGBA16F(rgb[0], rgb[1], rgb[2]);
 #else
       //verts[i].col = XMFLOAT4(xcolor);
       verts[i].col = XMFLOAT4(rgb[0], rgb[1], rgb[2], 1.0f);
@@ -980,7 +980,7 @@ extern "C" void Render()
       //need to fix this from white? but how
       //verts[i].col = 0xffffffff;
       //verts[i].col = D3DCOLOR_COLORVALUE(rgb[0], rgb[1], rgb[2], 1.0f);
-      verts[i].col = glColor3f(rgb[0], rgb[1], rgb[2]);
+      verts[i].col = GL_RGBA16F(rgb[0], rgb[1], rgb[2]);
       verts[i].x = g_viewport.TopLeftX + ((i / fMaxAudioData) * g_viewport.Width);
 #else
       verts[i].col = XMFLOAT4(rgb[0], rgb[1], rgb[2], 1.0f);
