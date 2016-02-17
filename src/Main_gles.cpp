@@ -28,6 +28,8 @@
 
 
 #include <thread>
+#include <stack>
+#include <mutex>
 #include <string.h>
 #include <cmath>
 #if defined(__APPLE__)
@@ -162,22 +164,17 @@ int iMaxAudioData_i = 256;
 float fMaxAudioData = 255.0f;
 
 
-/*
-ADDON::CHelper_libXBMC_addon *XBMC           = NULL;
-bool registerHelper(void* hdl)
+//curl thread initialization
+// this struct will go in the stack for the curl thread to read
+void putWorkerThread();
+struct PutData
 {
-  if (!XBMC)
-    XBMC = new ADDON::CHelper_libXBMC_addon;
-
-  if (!XBMC->RegisterMe(hdl))
-  {
-    delete XBMC, XBMC=NULL;
-    return false;
-  }
-
-  return true;
-}
-*/
+  std::string url;
+  std::string json;
+};
+//stack for putData - pushed by the main thread, top'ed and pop'ed by the curl thread
+std::stack<PutData> putStack;
+std::mutex mutex;
 
 
 struct timespec systemClock;
@@ -211,7 +208,68 @@ size_t noop_cb(void *ptr, size_t size, size_t nmemb, void *data) {
   return size * nmemb;
 }
 
+void putWorkerThread()
+{
+  //XBMC = new CHelper_libXBMC_addon;
+  //XBMC->Log(LOG_DEBUG, "making the thread\n");
+  PutData workerPutData;
+  while (true)
+  {
+    if (putStack.empty())
+    {
+      //XBMC->Log(LOG_DEBUG, "stack is empty, waiting half a second\n");
+      usleep(500);
+    }
+    else
+    {
+      //XBMC->Log(LOG_DEBUG, "exiting thread\n");
+      mutex.lock();
+      workerPutData = putStack.top();
+      mutex.unlock();
+      if (workerPutData.url == "exit")
+      {
+
+        //Exiting thread.
+        break;
+      }
+      else
+      {
+        CURL *curl = curl_easy_init();
+        CURLcode res;
+
+        if (curl) 
+        {
+          // Now specify we want to PUT data, but not using a file, so it has o be a CUSTOMREQUEST
+          curl_easy_setopt(curl, CURLOPT_TCP_NODELAY, 1);
+          curl_easy_setopt(curl, CURLOPT_TIMEOUT, 3L);
+          curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
+          curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, noop_cb);
+          //curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+          //curl_easy_setopt(curl, CURLOPT_POSTFIELDS, m_strJson.c_str());
+          curl_easy_setopt(curl, CURLOPT_POSTFIELDS, workerPutData.json.c_str());
+          // Set the URL that is about to receive our POST. 
+          //printf("Sent %s to %s\n", strJson.c_str(), strURLLight.c_str());
+          //curl_easy_setopt(curl, CURLOPT_URL, strURLLight.c_str());
+          curl_easy_setopt(curl, CURLOPT_URL, workerPutData.url.c_str());
+          // Perform the request, res will get the return code
+          res = curl_easy_perform(curl);
+          // always cleanup curl
+          curl_easy_cleanup(curl);
+        }
+        mutex.lock();
+        if (!putStack.empty())
+          putStack.pop();
+        mutex.unlock();
+
+      }
+    }
+  }
+}
+
+
+/*
 static void *putWorkerThread(void *json, void *url)
+//static void *putWorkerThread(std::string json,  std::string url)
 {
   CURL *curl = curl_easy_init();
   if (curl) 
@@ -235,10 +293,12 @@ static void *putWorkerThread(void *json, void *url)
   }
   return NULL;
 }
+*/
 
 void putMainThread(int bri, int sat, int hue, int transitionTime, std::vector<std::string> lightIDs, int numberOfLights, bool on, bool off)
 {
   std::string strJson, strURLLight;
+  PutData mainPutData;
   
   if (on) //turn on
     strJson = "{\"on\":true}";
@@ -264,9 +324,25 @@ void putMainThread(int bri, int sat, int hue, int transitionTime, std::vector<st
   {
     strURLLight = "http://" + strHueBridgeIPAddress +
       "/api/KodiVisWave/lights/" + lightIDs[i] + "/state";
+    
+    //put this light request on the stack
+    mainPutData.url = strURLLight;
+    mainPutData.json = strJson;
+    mutex.lock();
+    if (putStack.size() < 10)
+      putStack.push(mainPutData);
+    mutex.unlock();
+    
+    /*
     //threading here segfaults upon addon destroy
-    std::thread (putWorkerThread, (void *)strJson.c_str(), (void *)strURLLight.c_str()).detach();
+    std::thread t(putWorkerThread, (void *)strJson.c_str(), (void *)strURLLight.c_str());
+    //std::thread t(putWorkerThread, strJson, strURLLight);
+    if(t.joinable()) 
+    {
+      t.detach();
+    }
     //putWorkerThread((void *)strJson.c_str(), (void *)strURLLight.c_str());
+    */
   }
 }
 
@@ -556,12 +632,6 @@ void UpdateTime()
 //-----------------------------------------------------------------------------
 ADDON_STATUS ADDON_Create(void* hdl, void* props)
 {
-  /*
-  if (!registerHelper(hdl))
-    return ADDON_STATUS_PERMANENT_FAILURE;
-  //XBMC->Log(ADDON::LOG_INFO, "WavforHue: Logging works.");
-  */
-
   if (!props)
     return ADDON_STATUS_UNKNOWN;
 
@@ -576,12 +646,7 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
     return ADDON_STATUS_UNKNOWN;
   }
 
-  activeLightIDs.push_back("1");
-  activeLightIDs.push_back("2");
-  activeLightIDs.push_back("3");
-  dimmedLightIDs.push_back("4");
-  dimmedLightIDs.push_back("5");
-  afterLightIDs.push_back("4");
+
   
   // Must initialize libcurl before any threads are started.
   curl_global_init(CURL_GLOBAL_ALL);
@@ -596,11 +661,18 @@ extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, con
 {
 
   std::string strURLRegistration = "http://" + strHueBridgeIPAddress + "/api";
-
   CURL *curl;
-
   //set Hue registration command
   const char json[] = "{\"devicetype\":\"Kodi\",\"username\":\"KodiVisWave\"}";
+  
+  activeLightIDs.push_back("1");
+  activeLightIDs.push_back("2");
+  activeLightIDs.push_back("3");
+  dimmedLightIDs.push_back("4");
+  dimmedLightIDs.push_back("5");
+  afterLightIDs.push_back("4");  
+
+
 
   //struct curl_slist *headers = NULL;
   //XBMC->Log(ADDON::LOG_INFO, "WavforHue: checkpoint 1");
@@ -644,6 +716,16 @@ extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, con
   {
 	iMaxAudioData_i = 180;
 	fMaxAudioData = 179.0f;
+  }
+  
+  // Must initialize libcurl before any threads are started.
+  curl_global_init(CURL_GLOBAL_ALL);  
+
+  
+  std::thread curlThread(&putWorkerThread);
+  if (curlThread.joinable())
+  {
+    curlThread.detach();
   }
 }
 
@@ -847,16 +929,8 @@ extern "C" void ADDON_Stop()
 //-----------------------------------------------------------------------------
 extern "C" void ADDON_Destroy()
 {
-  if (vis_shader)
-  {
-    vis_shader->Free();
-    delete vis_shader;
-    vis_shader = NULL;
-  }
-
   //change the lights to something acceptable
   //wait a second to allow the Hue Bridge to catch up
-  usleep(500);
   if(lightsOnAfter)
   {
     TurnLightsOff(activeLightIDs, numberOfActiveLights);
@@ -864,7 +938,6 @@ extern "C" void ADDON_Destroy()
     {
       TurnLightsOff(dimmedLightIDs, numberOfDimmedLights);
     }
-    usleep(200);	
     TurnLightsOn(afterLightIDs, numberOfAfterLights);
     UpdateLights(afterBri, afterSat, afterHue, 30, afterLightIDs, numberOfAfterLights);
   }
@@ -879,8 +952,38 @@ extern "C" void ADDON_Destroy()
   
   g_fftobj.CleanUp();
 
+  /*
+  mutex.lock();
+  while (!putStack.empty())
+  {
+    putStack.pop();
+  }
+  mutex.unlock();
+  */
+
+  //get the curlThread to exit
+  PutData exitPutData;
+  exitPutData.url = "exit";
+  exitPutData.json = "";
+  mutex.lock();
+  putStack.push(exitPutData);
+  mutex.unlock();
+  //usleep(10000);
+
+  /*
+  if (curlThread.joinable())
+  {
+    curlThread.join();
+  }
+  */ 
+  if (vis_shader)
+  {
+    vis_shader->Free();
+    delete vis_shader;
+    vis_shader = NULL;
+  }
   
-  //XBMC=NULL;
+
 }
 
 //-- HasSettings --------------------------------------------------------------
