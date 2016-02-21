@@ -22,6 +22,7 @@
 #include "Main_gles.h"
 #endif
 
+WavforHue_Thread wt;
 
 //-- Create -------------------------------------------------------------------
 // Called on load. Addon should fully initalize or return error status
@@ -44,31 +45,31 @@ extern "C" ADDON_STATUS ADDON_Create(void* hdl, void* props)
   }
   // -- Waveform -----------------------------------------------------
 
-  // -- WavforHue function calls -------------------------------------
+  // -- Wavforhue function calls -------------------------------------
   // Initialize the lightIDs to something sane
-  wavforhue.activeHueData.lightIDs.push_back("1");
-  wavforhue.activeHueData.lightIDs.push_back("2");
-  wavforhue.activeHueData.lightIDs.push_back("3");
-  wavforhue.dimmedHueData.lightIDs.push_back("4");
-  wavforhue.dimmedHueData.lightIDs.push_back("5");
-  wavforhue.dimmedHueData.lightIDs.push_back("4");
+  wt.wavforhue.activeHueData.lightIDs.push_back("1");
+  wt.wavforhue.activeHueData.lightIDs.push_back("2");
+  wt.wavforhue.activeHueData.lightIDs.push_back("3");
+  wt.wavforhue.dimmedHueData.lightIDs.push_back("4");
+  wt.wavforhue.dimmedHueData.lightIDs.push_back("5");
+  wt.wavforhue.dimmedHueData.lightIDs.push_back("4");
 
   // Register this app with hue. It runs everytime you press play.
   // This allows something to press their bridge button within
   // 30 seconds to register this visualization with the Hue bridge.
   // Without registration, the Hue bridge won't accept the light
   // changing data from this visualization.
-  wavforhue.RegisterHue();
+  wt.wavforhue.RegisterHue();
   // Send the register command to the Hue bridge.
   transferQueue();
 
   //initialize the workaround for Cubox (imx6) HDMI
-  if (wavforhue.cuboxHDMIFix)
+  if (wt.wavforhue.cuboxHDMIFix)
   {
-    wavforhue.iMaxAudioData_i = 180;
-    wavforhue.fMaxAudioData = 179.0f;
+    wt.wavforhue.iMaxAudioData_i = 180;
+    wt.wavforhue.fMaxAudioData = 179.0f;
   }
-  // -- WavforHue function calls -------------------------------------
+  // -- Wavforhue function calls -------------------------------------
 
 
   return ADDON_STATUS_NEED_SAVEDSETTINGS;
@@ -79,14 +80,14 @@ extern "C" ADDON_STATUS ADDON_Create(void* hdl, void* props)
 //-----------------------------------------------------------------------------
 extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, const char* szSongName)
 {
-  // -- WavforHue function calls -------------------------------------
+  // -- Wavforhue function calls -------------------------------------
   // Prepare lights - dimming, turning on, etc.
-  wavforhue.Start();
-  // -- WavforHue function calls -------------------------------------
+  wt.wavforhue.Start();
+  // -- Wavforhue function calls -------------------------------------
 
   // -- Threading ---------------------------------------------------
   // Put this/these light request on the thread's queue.
-  transferQueue();
+  wt.transferQueue();
   // -- Threading ---------------------------------------------------
 }
 
@@ -96,21 +97,21 @@ extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, con
 //-----------------------------------------------------------------------------
 extern "C" void ADDON_Stop()
 {
-  // -- WavforHue function calls -------------------------------------
+  // -- Wavforhue function calls -------------------------------------
   // Change the lights to something acceptable.
-  wavforhue.Stop();
-  // -- WavforHue function calls -------------------------------------
+  wt.wavforhue.Stop();
+  // -- Wavforhue function calls -------------------------------------
 
   // -- Threading ---------------------------------------------------
   // Put this/these light request on the thread's queue.
-  transferQueue();
+  wt.transferQueue();
   // -- Threading ---------------------------------------------------
 
   //-- Threading -----------------------------------------------------
-  gRunThread = false;
-  while (gWorkerThread.joinable())  // Kill 'em all \m/
+  wt.gRunThread = false;
+  while (wt.gWorkerThread.joinable())  // Kill 'em all \m/
   {
-    gWorkerThread.join();
+    wt.gWorkerThread.join();
   }
   //-- Threading -----------------------------------------------------  
 }
@@ -123,10 +124,10 @@ extern "C" void ADDON_Destroy()
 {
 
   //-- Threading -----------------------------------------------------
-  gRunThread = false;
-  while (gWorkerThread.joinable()) // Kill 'em all \m/
+  wt.gRunThread = false;
+  while (wt.gWorkerThread.joinable()) // Kill 'em all \m/
   {
-    gWorkerThread.join();
+    wt.gWorkerThread.join();
   }
   //-- Threading -----------------------------------------------------
   
@@ -155,12 +156,12 @@ extern "C" void AudioData(const float* pAudioData, int iAudioDataLength, float *
   {
     for (int i = 0; i < iAudioDataLength; i += 2)
     {
-      wavforhue.sound.fWaveform[0][iPos] = float((pAudioData[i] / 32768.0f) * 255.0f);
-      wavforhue.sound.fWaveform[1][iPos] = float((pAudioData[i + 1] / 32768.0f) * 255.0f);
+      wt.wavforhue.sound.fWaveform[0][iPos] = float((pAudioData[i] / 32768.0f) * 255.0f);
+      wt.wavforhue.sound.fWaveform[1][iPos] = float((pAudioData[i + 1] / 32768.0f) * 255.0f);
 
       // damp the input into the FFT a bit, to reduce high-frequency noise:
-      tempWave[0][iPos] = 0.5f * (wavforhue.sound.fWaveform[0][iPos] + wavforhue.sound.fWaveform[0][iOld]);
-      tempWave[1][iPos] = 0.5f * (wavforhue.sound.fWaveform[1][iPos] + wavforhue.sound.fWaveform[1][iOld]);
+      tempWave[0][iPos] = 0.5f * (wt.wavforhue.sound.fWaveform[0][iPos] + wt.wavforhue.sound.fWaveform[0][iOld]);
+      tempWave[1][iPos] = 0.5f * (wt.wavforhue.sound.fWaveform[1][iPos] + wt.wavforhue.sound.fWaveform[1][iOld]);
       iOld = iPos;
       iPos++;
       if (iPos >= 576)
@@ -168,15 +169,15 @@ extern "C" void AudioData(const float* pAudioData, int iAudioDataLength, float *
     }
   }
 
-  // -- WavforHue function calls -------------------------------------
-  wavforhue.fftobj.time_to_frequency_domain(tempWave[0], wavforhue.sound.fSpectrum[0]);
-  wavforhue.fftobj.time_to_frequency_domain(tempWave[1], wavforhue.sound.fSpectrum[1]);
-  wavforhue.AnalyzeSound();
-  // -- WavforHue function calls -------------------------------------
+  // -- Wavforhue function calls -------------------------------------
+  wt.wavforhue.fftobj.time_to_frequency_domain(tempWave[0], wt.wavforhue.sound.fSpectrum[0]);
+  wt.wavforhue.fftobj.time_to_frequency_domain(tempWave[1], wt.wavforhue.sound.fSpectrum[1]);
+  wt.wavforhue.AnalyzeSound();
+  // -- Wavforhue function calls -------------------------------------
 
   // -- Threading ---------------------------------------------------
   // Put this/these light request on the thread's queue.
-  transferQueue();
+  wt.transferQueue();
   // -- Threading ---------------------------------------------------
 
 }
@@ -186,7 +187,7 @@ extern "C" void AudioData(const float* pAudioData, int iAudioDataLength, float *
 //-----------------------------------------------------------------------------
 extern "C" void Render()
 {
-  if (wavforhue.useWaveForm) {
+  if (wt.wavforhue.useWaveForm) {
     // -- Waveform -----------------------------------------------------
     GLfloat col[256][3];
     GLfloat ver[256][3];
@@ -220,37 +221,37 @@ extern "C" void Render()
     glEnableVertexAttribArray(colLoc);
 
     // Left (upper) channel
-    for (int i = 0; i < wavforhue.iMaxAudioData_i; i++)
+    for (int i = 0; i < wt.wavforhue.iMaxAudioData_i; i++)
     {
-      col[i][0] = wavforhue.rgb[0];
-      col[i][1] = wavforhue.rgb[1];
-      col[i][2] = wavforhue.rgb[2];
+      col[i][0] = wt.wavforhue.rgb[0];
+      col[i][1] = wt.wavforhue.rgb[1];
+      col[i][2] = wt.wavforhue.rgb[2];
       //ver[i][0] = g_viewport.X + ((i / 255.0f) * g_viewport.Width);
       //ver[i][1] = g_viewport.Y + g_viewport.Height * 0.33f + (g_fWaveform[0][i] * g_viewport.Height * 0.15f);
-      ver[i][0] = -1.0f + ((i / wavforhue.fMaxAudioData) * 2.0f);
-      ver[i][1] = 0.5f + wavforhue.sound.fWaveform[0][i];
+      ver[i][0] = -1.0f + ((i / wt.wavforhue.fMaxAudioData) * 2.0f);
+      ver[i][1] = 0.5f + wt.wavforhue.sound.fWaveform[0][i];
       ver[i][2] = 1.0f;
       idx[i] = i;
     }
 
-    glDrawElements(GL_LINE_STRIP, wavforhue.iMaxAudioData_i, GL_UNSIGNED_BYTE, idx);
+    glDrawElements(GL_LINE_STRIP, wt.wavforhue.iMaxAudioData_i, GL_UNSIGNED_BYTE, idx);
 
     // Right (lower) channel
-    for (int i = 0; i < wavforhue.iMaxAudioData_i; i++)
+    for (int i = 0; i < wt.wavforhue.iMaxAudioData_i; i++)
     {
-      col[i][0] = wavforhue.rgb[0];
-      col[i][1] = wavforhue.rgb[1];
-      col[i][2] = wavforhue.rgb[2];
+      col[i][0] = wt.wavforhue.rgb[0];
+      col[i][1] = wt.wavforhue.rgb[1];
+      col[i][2] = wt.wavforhue.rgb[2];
       //ver[i][0] = g_viewport.X + ((i / 255.0f) * g_viewport.Width);
       //ver[i][1] = g_viewport.Y + g_viewport.Height * 0.66f + (g_fWaveform[1][i] * g_viewport.Height * 0.15f);
-      ver[i][0] = -1.0f + ((i / wavforhue.fMaxAudioData) * 2.0f);
-      ver[i][1] = -0.5f + wavforhue.sound.fWaveform[1][i];
+      ver[i][0] = -1.0f + ((i / wt.wavforhue.fMaxAudioData) * 2.0f);
+      ver[i][1] = -0.5f + wt.wavforhue.sound.fWaveform[1][i];
       ver[i][2] = 1.0f;
       idx[i] = i;
 
     }
 
-    glDrawElements(GL_LINE_STRIP, wavforhue.iMaxAudioData_i, GL_UNSIGNED_BYTE, idx);
+    glDrawElements(GL_LINE_STRIP, wt.wavforhue.iMaxAudioData_i, GL_UNSIGNED_BYTE, idx);
 
     glDisableVertexAttribArray(posLoc);
     glDisableVertexAttribArray(colLoc);
@@ -267,11 +268,11 @@ extern "C" void Render()
     // -- Waveform -----------------------------------------------------
   }
   
-  // -- WavforHue function calls -------------------------------------
+  // -- Wavforhue function calls -------------------------------------
   //get some interesting numbers to play with
-  wavforhue.UpdateTime();
-  wavforhue.timePass = wavforhue.fElapsedAppTime;
-  // -- WavforHue function calls -------------------------------------
+  wt.wavforhue.UpdateTime();
+  wt.wavforhue.timePass = wt.wavforhue.fElapsedAppTime;
+  // -- Wavforhue function calls -------------------------------------
 
 }
 
@@ -371,12 +372,12 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
     return ADDON_STATUS_UNKNOWN;
 
   if (strcmp(strSetting, "UseWaveForm") == 0)
-    wavforhue.useWaveForm = *(bool*)value == 1;
+    wt.wavforhue.useWaveForm = *(bool*)value == 1;
   else if (strcmp(strSetting, "HueBridgeIP") == 0)
   {
     char* array;
     array = (char*)value;
-    wavforhue.strHueBridgeIPAddress = std::string(array);
+    wt.wavforhue.strHueBridgeIPAddress = std::string(array);
   }
   //----------------------------------------------------------  
   else if (strcmp(strSetting, "ActiveLights") == 0)
@@ -384,92 +385,92 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
     char* array;
     array = (char*)value;
     std::string activeLightIDsUnsplit = std::string(array);
-    wavforhue.activeHueData.lightIDs.clear();
+    wt.wavforhue.activeHueData.lightIDs.clear();
     std::string delimiter = ",";
     size_t last = 0;
     size_t next = 0;
     while ((next = activeLightIDsUnsplit.find(delimiter, last)) != std::string::npos)
     {
-      wavforhue.activeHueData.lightIDs.push_back(activeLightIDsUnsplit.substr(last, next - last));
+      wt.wavforhue.activeHueData.lightIDs.push_back(activeLightIDsUnsplit.substr(last, next - last));
       last = next + 1;
     }
     //do the last light token
-    wavforhue.activeHueData.lightIDs.push_back(activeLightIDsUnsplit.substr(last));
-    wavforhue.activeHueData.numberOfLights = wavforhue.activeHueData.lightIDs.size();
+    wt.wavforhue.activeHueData.lightIDs.push_back(activeLightIDsUnsplit.substr(last));
+    wt.wavforhue.activeHueData.numberOfLights = wt.wavforhue.activeHueData.lightIDs.size();
   }
   else if (strcmp(strSetting, "BeatThreshold") == 0)
-    wavforhue.beatThreshold = *(float*)value;
+    wt.wavforhue.beatThreshold = *(float*)value;
   else if (strcmp(strSetting, "MaxBri") == 0)
-    wavforhue.maxBri = *(int*)value;
+    wt.wavforhue.maxBri = *(int*)value;
   else if (strcmp(strSetting, "HueRangeUpper") == 0)
   {
-    wavforhue.lastHue = *(int*)value;
-    wavforhue.initialHue = wavforhue.lastHue;
+    wt.wavforhue.lastHue = *(int*)value;
+    wt.wavforhue.initialHue = wt.wavforhue.lastHue;
   }
   else if (strcmp(strSetting, "HueRangeLower") == 0)
-    wavforhue.targetHue = *(int*)value;
+    wt.wavforhue.targetHue = *(int*)value;
   //----------------------------------------------------------
   else if (strcmp(strSetting, "DimmedLights") == 0)
   {
     char* array;
     array = (char*)value;
     std::string dimmedLightIDsUnsplit = std::string(array);
-    wavforhue.dimmedHueData.lightIDs.clear();
+    wt.wavforhue.dimmedHueData.lightIDs.clear();
     std::string delimiter = ",";
     size_t last = 0;
     size_t next = 0;
     while ((next = dimmedLightIDsUnsplit.find(delimiter, last)) != std::string::npos)
     {
-      wavforhue.dimmedHueData.lightIDs.push_back(dimmedLightIDsUnsplit.substr(last, next - last));
+      wt.wavforhue.dimmedHueData.lightIDs.push_back(dimmedLightIDsUnsplit.substr(last, next - last));
       last = next + 1;
     }
     //do the last light token
-    wavforhue.dimmedHueData.lightIDs.push_back(dimmedLightIDsUnsplit.substr(last));
-    if (wavforhue.dimmedHueData.lightIDs[0].size() == 0)
+    wt.wavforhue.dimmedHueData.lightIDs.push_back(dimmedLightIDsUnsplit.substr(last));
+    if (wt.wavforhue.dimmedHueData.lightIDs[0].size() == 0)
     {
-      wavforhue.dimmedHueData.numberOfLights = 0;
+      wt.wavforhue.dimmedHueData.numberOfLights = 0;
     }
     else
     {
-      wavforhue.dimmedHueData.numberOfLights = wavforhue.dimmedHueData.lightIDs.size();
+      wt.wavforhue.dimmedHueData.numberOfLights = wt.wavforhue.dimmedHueData.lightIDs.size();
     }
   }
   else if (strcmp(strSetting, "DimmedBri") == 0)
-    wavforhue.dimmedHueData.bri = *(int*)value;
+    wt.wavforhue.dimmedHueData.bri = *(int*)value;
   else if (strcmp(strSetting, "DimmedSat") == 0)
-    wavforhue.dimmedHueData.sat = *(int*)value;
+    wt.wavforhue.dimmedHueData.sat = *(int*)value;
   else if (strcmp(strSetting, "DimmedHue") == 0)
-    wavforhue.dimmedHueData.hue = *(int*)value;
+    wt.wavforhue.dimmedHueData.hue = *(int*)value;
   //----------------------------------------------------------
   else if (strcmp(strSetting, "LightsOnAfter") == 0)
-    wavforhue.lightsOnAfter = *(bool*)value == 1;
+    wt.wavforhue.lightsOnAfter = *(bool*)value == 1;
   else if (strcmp(strSetting, "AfterLights") == 0)
   {
     char* array;
     array = (char*)value;
     std::string afterLightIDsUnsplit = std::string(array);
-    wavforhue.afterHueData.lightIDs.clear();
+    wt.wavforhue.afterHueData.lightIDs.clear();
     std::string delimiter = ",";
     size_t last = 0;
     size_t next = 0;
     while ((next = afterLightIDsUnsplit.find(delimiter, last)) != std::string::npos)
     {
-      wavforhue.afterHueData.lightIDs.push_back(afterLightIDsUnsplit.substr(last, next - last));
+      wt.wavforhue.afterHueData.lightIDs.push_back(afterLightIDsUnsplit.substr(last, next - last));
       last = next + 1;
     }
     //do the last light token
-    wavforhue.afterHueData.lightIDs.push_back(afterLightIDsUnsplit.substr(last));
-    wavforhue.afterHueData.numberOfLights = wavforhue.afterHueData.lightIDs.size();
+    wt.wavforhue.afterHueData.lightIDs.push_back(afterLightIDsUnsplit.substr(last));
+    wt.wavforhue.afterHueData.numberOfLights = wt.wavforhue.afterHueData.lightIDs.size();
   }
   else if (strcmp(strSetting, "AfterBri") == 0)
-    wavforhue.afterHueData.bri = *(int*)value;
+    wt.wavforhue.afterHueData.bri = *(int*)value;
   else if (strcmp(strSetting, "AfterSat") == 0)
-    wavforhue.afterHueData.sat = *(int*)value;
+    wt.wavforhue.afterHueData.sat = *(int*)value;
   else if (strcmp(strSetting, "AfterHue") == 0)
-    wavforhue.afterHueData.hue = *(int*)value;
+    wt.wavforhue.afterHueData.hue = *(int*)value;
   //----------------------------------------------------------
   else if (strcmp(strSetting, "CuboxHDMIFix") == 0)
-    wavforhue.cuboxHDMIFix = *(bool*)value == 1;
+    wt.wavforhue.cuboxHDMIFix = *(bool*)value == 1;
   else
     return ADDON_STATUS_UNKNOWN;
 

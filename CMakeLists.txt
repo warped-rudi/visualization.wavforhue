@@ -9,7 +9,8 @@ find_package(CURL REQUIRED)
 
 set(WAVFORHUE_SOURCES src/Main.cpp
                       src/fft.cpp
-					  src/wavforhue.cpp)
+                      src/wavforhue.cpp
+                      src/wavforhue_thread.cpp)
 
 if(WIN32)
   set(SHADER_FILES src/DefaultVertexShader.hlsl
@@ -50,7 +51,8 @@ else()
       add_definitions(-DHAS_GLES2)
       set(WAVFORHUE_SOURCES src/Main_gles.cpp
                            src/fft.cpp
-						   src/wavforhue.cpp
+                           src/wavforhue.cpp
+                           src/wavforhue_thread.cpp
                            src/VisGUIShader.cpp
                            src/VisMatrixGLES.cpp
                            src/VisShader.cpp)

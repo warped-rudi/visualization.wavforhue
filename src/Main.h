@@ -22,7 +22,7 @@
 #define WAVFORHUE_MAIN
 
 #include <xbmc_vis_dll.h>
-//#include <stdio.h>
+#include <cstring>
 
 #ifndef WAVFORHUE
 #include "wavforhue.h"

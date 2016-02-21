@@ -22,6 +22,15 @@
 #define WAVFORHUE_GLES_MAIN
 
 #include <xbmc_vis_dll.h>
+#include <cstring>
+
+#ifndef WAVFORHUE
+#include "wavforhue.h"
+#endif
+
+#ifndef WAVFORHUE_THREAD
+#include "wavforhue_thread.h"
+#endif
 
 // -- Waveform -----------------------------------------------------
 #if defined(__APPLE__)
@@ -36,13 +45,7 @@
 // -- Waveform -----------------------------------------------------
 
 
-#ifndef WAVFORHUE
-#include "wavforhue.h"
-#endif
 
-#ifndef WAVFORHUE_THREAD
-#include "wavforhue_thread.h"
-#endif
 
 // -- Waveform -----------------------------------------------------
 #define NUM_BANDS 16

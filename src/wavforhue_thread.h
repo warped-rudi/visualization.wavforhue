@@ -45,21 +45,28 @@
 #include <queue>
 // -- Threading ----------------------------------------------------
 
-#ifndef THESE_GLOBALS
-#define THESE_GLOBALS
+
 // -- Threading ----------------------------------------------------
-std::thread gWorkerThread;
-std::mutex gMutex;
-std::condition_variable gThreadConditionVariable;
-std::atomic<bool> gRunThread;
-bool gReady;
-size_t noop_cb(void *ptr, size_t size, size_t nmemb, void *data);
-void workerThread();
-void transferQueue();
-std::queue<PutData> gQueue;
+class WavforHue_Thread
+{
+public:
+  std::thread gWorkerThread;
+  std::mutex gMutex;
+  std::condition_variable gThreadConditionVariable;
+  std::atomic<bool> gRunThread;
+  bool gReady;
+  std::queue<PutData> gQueue;
+  WavforHue wavforhue;
+  WavforHue_Thread();
+  ~WavforHue_Thread();
+
+  size_t noop_cb(void *ptr, size_t size, size_t nmemb, void *data);
+  void workerThread();
+  void transferQueue();
+};
+
+
+
 // -- Threading ----------------------------------------------------
-// Main class instantiation
-WavforHue wavforhue;
-#endif
 
 #endif

@@ -23,15 +23,27 @@
 #endif
 
 
+// -- Constructor ----------------------------------------------------
+WavforHue_Thread::WavforHue_Thread()
+{
+}
+// -- Constructor ----------------------------------------------------
+
+// -- Destructor ----------------------------------------------------- 
+WavforHue_Thread::~WavforHue_Thread()
+{
+}
+// -- Destructor ----------------------------------------------------- 
+
 // -- Threading ----------------------------------------------------------
 // This helps hated cURL not output a ton of crap to stdout
-size_t noop_cb(void *ptr, size_t size, size_t nmemb, void *data) {
+size_t WavforHue_Thread::noop_cb(void *ptr, size_t size, size_t nmemb, void *data) {
   return size * nmemb;
 }
 
 // This thread keeps cURL from puking all over the waveform, suprising it and
 // making it jerk away.
-void workerThread()
+void WavforHue_Thread::workerThread()
 {
   bool isEmpty;
   PutData putdata;
@@ -49,7 +61,7 @@ void workerThread()
     {
       //Wait until AudioData() sends data.
       std::unique_lock<std::mutex> lock(gMutex);
-      gThreadConditionVariable.wait(lock, []{return gReady; });
+      gThreadConditionVariable.wait(lock, [&]{return gReady; });
     }
     else
     {
@@ -66,13 +78,10 @@ void workerThread()
       curl_easy_setopt(curl, CURLOPT_TCP_NODELAY, 1);
       curl_easy_setopt(curl, CURLOPT_TIMEOUT, 3L);
       curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
-      curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, noop_cb);
-      //curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-      //curl_easy_setopt(curl, CURLOPT_POSTFIELDS, m_strJson.c_str());
+      //error: invalid use of non-static member function
+      curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &WavforHue_Thread::noop_cb);
       curl_easy_setopt(curl, CURLOPT_POSTFIELDS, putdata.json.c_str());
       // Set the URL that is about to receive our POST. 
-      //printf("Sent %s to %s\n", strJson.c_str(), strURLLight.c_str());
-      //curl_easy_setopt(curl, CURLOPT_URL, strURLLight.c_str());
       curl_easy_setopt(curl, CURLOPT_URL, putdata.url.c_str());
       // Perform the request, res will get the return code
       res = curl_easy_perform(curl);
@@ -82,14 +91,14 @@ void workerThread()
   }
 }
 
-void transferQueue()
+void WavforHue_Thread::transferQueue()
 {
   PutData putData;
   gRunThread = true;
   // Check if the thread is alive yet.
   if (!gWorkerThread.joinable())
   {
-    gWorkerThread = std::thread(&workerThread);
+    gWorkerThread = std::thread(&WavforHue_Thread::workerThread, this);
   }
   while (wavforhue.queue.size())
   {
