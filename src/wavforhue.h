@@ -28,6 +28,10 @@
 #include <vector>
 #include <queue>
 
+#ifndef _WIN32
+#include <math.h>
+#endif
+
 // -- Fast Fourier Transforms --------------------------------------
 #include "fft.h"
 // -- Fast Fourier Transforms --------------------------------------
