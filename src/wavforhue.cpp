@@ -143,10 +143,10 @@ void WavforHue::huePutRequest(HueData hueData)
     //put this light request on the stack
     _putData.url = strURLLight;
     _putData.json = strJson;
-    if (queue.size() < 10)
-    {
+    //if (queue.size() < 10)
+    //{
       queue.push(_putData);
-    }
+    //}
   }
 }
 

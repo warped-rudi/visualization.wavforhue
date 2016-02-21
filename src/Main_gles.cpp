@@ -83,6 +83,11 @@ extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, con
   // -- Wavforhue function calls -------------------------------------
   // Prepare lights - dimming, turning on, etc.
   wt.wavforhue.Start();
+  if(wt.wavforhue.cuboxHDMIfix)
+  {
+    wt.wavforhue.iMaxAudioData_i = 180;
+    wt.wavforhue.fMaxAudioData = 179.0f;
+  }
   // -- Wavforhue function calls -------------------------------------
 
   // -- Threading ---------------------------------------------------
