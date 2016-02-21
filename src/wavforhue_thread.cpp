@@ -46,12 +46,13 @@ size_t WavforHue_Thread::noop_cb(void *ptr, size_t size, size_t nmemb, void *dat
 void WavforHue_Thread::workerThread()
 {
   bool isEmpty;
-  PutData putdata;
+  PutData putData;
+  std::queue<PutData> mQueue;
   // This thread comes alive when AudioData(), Create() or Start() has put an 
   // item in the stack. It runs until Destroy() or Stop() sets gRunThread to 
   // false and joins it. Or something like that. It's actually magic.
-  while (gRunThread)
-  {
+  while (gRunThread || !mQueue.empty())
+  {  
     //check that an item is on the stack
     {
       std::lock_guard<std::mutex> lock(gMutex);
@@ -65,24 +66,32 @@ void WavforHue_Thread::workerThread()
     }
     else
     {
+      // Get everything off the global queue for local processing
       std::lock_guard<std::mutex> lock(gMutex);
-      putdata = gQueue.front();
-      gQueue.pop();
+      while (!gQueue.empty())
+      {
+        mQueue.push(gQueue.front());
+        gQueue.pop();
+      }
     }
-    if (!isEmpty)
+    while (!mQueue.empty())
     {
+      putData = mQueue.front(); mQueue.pop();
       CURL *curl;
       CURLcode res;
       curl = curl_easy_init();
       // Now specify we want to PUT data, but not using a file, so it has o be a CUSTOMREQUEST
       curl_easy_setopt(curl, CURLOPT_TCP_NODELAY, 1);
       curl_easy_setopt(curl, CURLOPT_TIMEOUT, 3L);
-      curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
-      //error: invalid use of non-static member function
-      curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &WavforHue_Thread::noop_cb);
-      curl_easy_setopt(curl, CURLOPT_POSTFIELDS, putdata.json.c_str());
+      if(putData.url.substr(putData.url.length() - 3) == "api")
+        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
+      else
+        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
+      // This eliminates all kinds of HTTP responses from showing up in stdin.
+      //curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &WavforHue_Thread::noop_cb);
+      curl_easy_setopt(curl, CURLOPT_POSTFIELDS, putData.json.c_str());
       // Set the URL that is about to receive our POST. 
-      curl_easy_setopt(curl, CURLOPT_URL, putdata.url.c_str());
+      curl_easy_setopt(curl, CURLOPT_URL, putData.url.c_str());
       // Perform the request, res will get the return code
       res = curl_easy_perform(curl);
       // always cleanup curl
@@ -100,15 +109,15 @@ void WavforHue_Thread::transferQueue()
   {
     gWorkerThread = std::thread(&WavforHue_Thread::workerThread, this);
   }
-  while (wavforhue.queue.size())
+  while (!wavforhue.queue.empty())
   {
     putData = wavforhue.queue.front();
     wavforhue.queue.pop();
-    if (gQueue.size() < 10)
-    {
+    //if (gQueue.size() < 10)
+    //{
       std::lock_guard<std::mutex> lock(gMutex);
       gQueue.push(putData);
-    }
+    //}
   }
   // Let the thread know to start processing.
   {

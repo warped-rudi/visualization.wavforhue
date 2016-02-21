@@ -112,13 +112,14 @@ extern "C" void ADDON_Stop()
   wt.transferQueue();
   // -- Threading ---------------------------------------------------
 
-  //-- Threading -----------------------------------------------------
+  // -- Threading ---------------------------------------------------
+  // Need to let the gQueue empty...
   wt.gRunThread = false;
   while (wt.gWorkerThread.joinable())  // Kill 'em all \m/
   {
     wt.gWorkerThread.join();
   }
-  //-- Threading -----------------------------------------------------
+  // -- Threading ---------------------------------------------------
 }
 
 //-- Detroy -------------------------------------------------------------------
@@ -127,6 +128,16 @@ extern "C" void ADDON_Stop()
 //-----------------------------------------------------------------------------
 extern "C" void ADDON_Destroy()
 {
+  /*
+  // -- Wavforhue function calls -------------------------------------
+  // Change the lights to something acceptable.
+  wt.wavforhue.Stop();
+  // -- Wavforhue function calls -------------------------------------
+
+  // -- Threading ---------------------------------------------------
+  // Put this/these light request on the thread's queue.
+  wt.transferQueue();
+  // -- Threading ---------------------------------------------------
   
   //-- Threading -----------------------------------------------------
   wt.gRunThread = false;
@@ -135,6 +146,7 @@ extern "C" void ADDON_Destroy()
     wt.gWorkerThread.join();
   }
   //-- Threading -----------------------------------------------------
+  */
 
   // -- Waveform -----------------------------------------------------
 #ifndef HAS_OPENGL

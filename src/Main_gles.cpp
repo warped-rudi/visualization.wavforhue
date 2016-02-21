@@ -120,6 +120,16 @@ extern "C" void ADDON_Stop()
 //-----------------------------------------------------------------------------
 extern "C" void ADDON_Destroy()
 {
+  /*
+  // -- Wavforhue function calls -------------------------------------
+  // Change the lights to something acceptable.
+  wt.wavforhue.Stop();
+  // -- Wavforhue function calls -------------------------------------
+
+  // -- Threading ---------------------------------------------------
+  // Put this/these light request on the thread's queue.
+  wt.transferQueue();
+  // -- Threading ---------------------------------------------------
 
   //-- Threading -----------------------------------------------------
   wt.gRunThread = false;
@@ -128,7 +138,8 @@ extern "C" void ADDON_Destroy()
     wt.gWorkerThread.join();
   }
   //-- Threading -----------------------------------------------------
-  
+  */  
+
   // -- Waveform -----------------------------------------------------
   if (vis_shader)
   {
