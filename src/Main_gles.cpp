@@ -61,7 +61,7 @@ extern "C" ADDON_STATUS ADDON_Create(void* hdl, void* props)
   // changing data from this visualization.
   wt.wavforhue.RegisterHue();
   // Send the register command to the Hue bridge.
-  transferQueue();
+  wt.transferQueue();
 
   //initialize the workaround for Cubox (imx6) HDMI
   if (wt.wavforhue.cuboxHDMIFix)
