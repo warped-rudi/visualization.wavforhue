@@ -62,13 +62,6 @@ extern "C" ADDON_STATUS ADDON_Create(void* hdl, void* props)
   wt.wavforhue.RegisterHue();
   // Send the register command to the Hue bridge.
   wt.transferQueue();
-
-  //initialize the workaround for Cubox (imx6) HDMI
-  if (wt.wavforhue.cuboxHDMIFix)
-  {
-    wt.wavforhue.iMaxAudioData_i = 180;
-    wt.wavforhue.fMaxAudioData = 179.0f;
-  }
   // -- Wavforhue function calls -------------------------------------
 
 
@@ -83,7 +76,7 @@ extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, con
   // -- Wavforhue function calls -------------------------------------
   // Prepare lights - dimming, turning on, etc.
   wt.wavforhue.Start();
-  if(wt.wavforhue.cuboxHDMIfix)
+  if(wt.wavforhue.cuboxHDMIFix)
   {
     wt.wavforhue.iMaxAudioData_i = 180;
     wt.wavforhue.fMaxAudioData = 179.0f;

@@ -70,12 +70,6 @@ extern "C" ADDON_STATUS ADDON_Create(void* hdl, void* props)
   // Send the register command to the Hue bridge.
   wt.transferQueue();
 
-  //initialize the workaround for Cubox (imx6) HDMI
-  if (wt.wavforhue.cuboxHDMIFix)
-  {
-    wt.wavforhue.iMaxAudioData_i = 180;
-    wt.wavforhue.fMaxAudioData = 179.0f;
-  }
   // -- WavforHue function calls -------------------------------------
 
   return ADDON_STATUS_NEED_SAVEDSETTINGS;
