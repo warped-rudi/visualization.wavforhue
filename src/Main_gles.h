@@ -80,6 +80,7 @@ const char *vert = "attribute vec4 m_attrpos;\n"
                    "}\n";
 
 CVisGUIShader  *vis_shader = NULL;
+float g_fWaveform[2][512];
 // -- Waveform -----------------------------------------------------
 
 #endif

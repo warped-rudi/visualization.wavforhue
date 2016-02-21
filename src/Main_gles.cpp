@@ -156,6 +156,12 @@ extern "C" void AudioData(const float* pAudioData, int iAudioDataLength, float *
   {
     for (int i = 0; i < iAudioDataLength; i += 2)
     {
+      if(iPos < 512) // This is for Waveform.
+      {
+        g_fWaveform[0][iPos] = pAudioData[i  ]; // left channel
+        g_fWaveform[1][iPos] = pAudioData[i+1]; // right channel
+      }
+
       wt.wavforhue.sound.fWaveform[0][iPos] = float((pAudioData[i] / 32768.0f) * 255.0f);
       wt.wavforhue.sound.fWaveform[1][iPos] = float((pAudioData[i + 1] / 32768.0f) * 255.0f);
 
@@ -229,7 +235,7 @@ extern "C" void Render()
       //ver[i][0] = g_viewport.X + ((i / 255.0f) * g_viewport.Width);
       //ver[i][1] = g_viewport.Y + g_viewport.Height * 0.33f + (g_fWaveform[0][i] * g_viewport.Height * 0.15f);
       ver[i][0] = -1.0f + ((i / wt.wavforhue.fMaxAudioData) * 2.0f);
-      ver[i][1] = 0.5f + wt.wavforhue.sound.fWaveform[0][i];
+      ver[i][1] = 0.5f + g_fWaveform[0][i];
       ver[i][2] = 1.0f;
       idx[i] = i;
     }
@@ -245,7 +251,7 @@ extern "C" void Render()
       //ver[i][0] = g_viewport.X + ((i / 255.0f) * g_viewport.Width);
       //ver[i][1] = g_viewport.Y + g_viewport.Height * 0.66f + (g_fWaveform[1][i] * g_viewport.Height * 0.15f);
       ver[i][0] = -1.0f + ((i / wt.wavforhue.fMaxAudioData) * 2.0f);
-      ver[i][1] = -0.5f + wt.wavforhue.sound.fWaveform[1][i];
+      ver[i][1] = -0.5f + g_fWaveform[1][i];
       ver[i][2] = 1.0f;
       idx[i] = i;
 
