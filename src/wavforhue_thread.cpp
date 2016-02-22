@@ -95,7 +95,7 @@ void WavforHue_Thread::curlCall(PutData putData)
   else
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
   // This eliminates all kinds of HTTP responses from showing up in stdin.
-  //curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &WavforHue_Thread::noop_cb);
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &WavforHue_Thread::noop_cb);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, putData.json.c_str());
   // Set the URL that is about to receive our POST. 
   curl_easy_setopt(curl, CURLOPT_URL, putData.url.c_str());
