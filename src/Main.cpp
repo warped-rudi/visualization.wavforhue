@@ -35,6 +35,7 @@ extern "C" ADDON_STATUS ADDON_Create(void* hdl, void* props)
   // -- Waveform -----------------------------------------------------
   VIS_PROPS* visProps = (VIS_PROPS*)props;
 
+  /*
 #ifdef HAS_OPENGL
   g_device = visProps->device;
 #endif
@@ -50,6 +51,18 @@ extern "C" ADDON_STATUS ADDON_Create(void* hdl, void* props)
   if (!init_renderer_objs())
     return ADDON_STATUS_PERMANENT_FAILURE;
 #endif
+  */
+#ifndef HAS_OPENGL  
+  g_device = (LPDIRECT3DDEVICE9)visProps->device;
+#else
+  g_device = visProps->device;
+#endif
+  g_viewport.X = visProps->x;
+  g_viewport.Y = visProps->y;
+  g_viewport.Width = visProps->width;
+  g_viewport.Height = visProps->height;
+  g_viewport.MinZ = 0;
+  g_viewport.MaxZ = 1;
   // -- Waveform -----------------------------------------------------
 
   // -- WavforHue function calls -------------------------------------
@@ -128,27 +141,8 @@ extern "C" void ADDON_Stop()
 //-----------------------------------------------------------------------------
 extern "C" void ADDON_Destroy()
 {
-  /*
-  // -- Wavforhue function calls -------------------------------------
-  // Change the lights to something acceptable.
-  wt.wavforhue.Stop();
-  // -- Wavforhue function calls -------------------------------------
-
-  // -- Threading ---------------------------------------------------
-  // Put this/these light request on the thread's queue.
-  wt.transferQueue();
-  // -- Threading ---------------------------------------------------
-  
-  //-- Threading -----------------------------------------------------
-  wt.gRunThread = false;
-  while (wt.gWorkerThread.joinable()) // Kill 'em all \m/
-  {
-    wt.gWorkerThread.join();
-  }
-  //-- Threading -----------------------------------------------------
-  */
-
   // -- Waveform -----------------------------------------------------
+  /*
 #ifndef HAS_OPENGL
   if (g_cViewPort)
     g_cViewPort->Release();
@@ -163,6 +157,7 @@ extern "C" void ADDON_Destroy()
   if (g_device)
     g_device->Release();
 #endif
+  */
   // -- Waveform -----------------------------------------------------
 }
 
@@ -220,6 +215,7 @@ extern "C" void Render()
     Vertex_t  verts[512];
 
 #ifndef HAS_OPENGL
+    /*
     unsigned stride = sizeof(Vertex_t), offset = 0;
     g_context->IASetVertexBuffers(0, 1, &g_vBuffer, &stride, &offset);
     g_context->IASetInputLayout(g_inputLayout);
@@ -228,39 +224,39 @@ extern "C" void Render()
     g_context->VSSetConstantBuffers(0, 1, &g_cViewPort);
     g_context->PSSetShader(g_pShader, 0, 0);
     float xcolor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    */
+    g_device->SetFVF(VERTEX_FORMAT);
+    g_device->SetPixelShader(NULL);
 #endif
 
     // Left (upper) channel
 #ifdef HAS_OPENGL
     GLenum errcode;
     //glColor3f(1.0, 1.0, 1.0);
-    // WavforHue mod
     glColor3f(wt.wavforhue.rgb[0], wt.wavforhue.rgb[1], wt.wavforhue.rgb[2]);
     glDisable(GL_BLEND);
     glPushMatrix();
     glTranslatef(0, 0, -1.0);
     glBegin(GL_LINE_STRIP);
-    // WavforHue mod
     for (int i = 0; i < wt.wavforhue.iMaxAudioData_i; i++)
 #else
     for (int i = 0; i < 256; i++)
 #endif
     {
 #ifdef HAS_OPENGL
-      // WavforHue mod
       //verts[i].col = 0xffffffff;
-      // WavforHue mod
-      verts[i].x = g_viewport.TopLeftX + ((i / wt.wavforhue.fMaxAudioData) * g_viewport.Width);
+      //verts[i].x = g_viewport.TopLeftX + ((i / wt.wavforhue.fMaxAudioData) * g_viewport.Width);
+      verts[i].x = g_viewport.X + ((i / wt.wavforhue.fMaxAudioData) * g_viewport.Width);
 #else
-      // WavforHue mod
       //verts[i].col = XMFLOAT4(xcolor);
-      verts[i].col = XMFLOAT4(wt.wavforhue.rgb[0], wt.wavforhue.rgb[1], wt.wavforhue.rgb[2], 1.0f);
-      // WavforHue mod
-      verts[i].x = g_viewport.TopLeftX + ((i / 255.0f) * g_viewport.Width);
+      //verts[i].col = XMFLOAT4(wt.wavforhue.rgb[0], wt.wavforhue.rgb[1], wt.wavforhue.rgb[2], 1.0f);
+      verts[i].col = D3DCOLOR_COLORVALUE(wt.wavforhue.rgb[0], wt.wavforhue.rgb[1], wt.wavforhue.rgb[2], 1.0f);
+      //verts[i].x = g_viewport.TopLeftX + ((i / 255.0f) * g_viewport.Width);
+      verts[i].x = g_viewport.X + ((i / 255.0f) * g_viewport.Width);
 #endif
-      // WavforHue mod
-      verts[i].y = g_viewport.TopLeftY + g_viewport.Height * 0.33f
-        + (g_fWaveform[0][i] * g_viewport.Height * 0.15f);
+      //verts[i].y = g_viewport.TopLeftY + g_viewport.Height * 0.33f
+      //  + (g_fWaveform[0][i] * g_viewport.Height * 0.15f);
+      verts[i].y = g_viewport.Y + g_viewport.Height * 0.33f + (g_fWaveform[0][i] * g_viewport.Height * 0.15f);
       verts[i].z = 1.0;
 #ifdef HAS_OPENGL
       glVertex2f(verts[i].x, verts[i].y);
@@ -271,6 +267,9 @@ extern "C" void Render()
     if ((errcode = glGetError()) != GL_NO_ERROR) {
       printf("Houston, we have a GL problem: %s\n", gluErrorString(errcode));
     }
+//#endif
+#elif !defined(HAS_OPENGL)
+    g_device->DrawPrimitiveUP(D3DPT_LINESTRIP, wt.wavforhue.iMaxAudioData_i - 1, verts, sizeof(Vertex_t));
 #endif
 
     // Right (lower) channel
@@ -279,21 +278,24 @@ extern "C" void Render()
     // WavforHue mod
     for (int i = 0; i < wt.wavforhue.iMaxAudioData_i; i++)
 #else
-    for (int i = 256; i < 512; i++)
+    //for (int i = 256; i < 512; i++)
+    for (int i = 0; i < 256; i++)
 #endif
     {
 #ifdef HAS_OPENGL
-      // WavforHue mod
       //verts[i].col = 0xffffffff;
-      // WavforHue mod
-      verts[i].x = g_viewport.TopLeftX + ((i / wt.wavforhue.fMaxAudioData) * g_viewport.Width);
+      //verts[i].x = g_viewport.TopLeftX + ((i / wt.wavforhue.fMaxAudioData) * g_viewport.Width);
+      verts[i].x = g_viewport.X + ((i / wt.wavforhue.fMaxAudioData) * g_viewport.Width);
 #else
-      // WavforHue mod
       //verts[i].col = XMFLOAT4(xcolor);
-      verts[i].col = XMFLOAT4(wt.wavforhue.rgb[0], wt.wavforhue.rgb[1], wt.wavforhue.rgb[2], 1.0f);
-      verts[i].x = g_viewport.TopLeftX + (((i - 256) / 255.0f) * g_viewport.Width);
+      //verts[i].col = XMFLOAT4(wt.wavforhue.rgb[0], wt.wavforhue.rgb[1], wt.wavforhue.rgb[2], 1.0f);
+      verts[i].col = D3DCOLOR_COLORVALUE(wt.wavforhue.rgb[0], wt.wavforhue.rgb[1], wt.wavforhue.rgb[2], 1.0f);
+      //verts[i].x = g_viewport.TopLeftX + (((i - 256) / 255.0f) * g_viewport.Width);
+      verts[i].x = g_viewport.X + ((i / 255.0f) * g_viewport.Width);
 #endif
-      verts[i].y = g_viewport.TopLeftY + g_viewport.Height * 0.66f
+      //verts[i].y = g_viewport.TopLeftY + g_viewport.Height * 0.66f
+      //  + (g_fWaveform[1][i] * g_viewport.Height * 0.15f);
+      verts[i].y = g_viewport.Y + g_viewport.Height * 0.66f
         + (g_fWaveform[1][i] * g_viewport.Height * 0.15f);
       verts[i].z = 1.0;
 #ifdef HAS_OPENGL
@@ -309,6 +311,7 @@ extern "C" void Render()
       printf("Houston, we have a GL problem: %s\n", gluErrorString(errcode));
     }
 #elif !defined(HAS_OPENGL)
+    /*
     // a little optimization: generate and send all vertecies for both channels
     D3D11_MAPPED_SUBRESOURCE res;
     if (S_OK == g_context->Map(g_vBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &res))
@@ -320,6 +323,8 @@ extern "C" void Render()
     g_context->Draw(256, 0);
     // draw right channel
     g_context->Draw(256, 256);
+    */
+    g_device->DrawPrimitiveUP(D3DPT_LINESTRIP, wt.wavforhue.iMaxAudioData_i - 1, verts, sizeof(Vertex_t));
 #endif
     // -- Waveform -----------------------------------------------------
   }
@@ -540,6 +545,7 @@ extern "C" void ADDON_Announce(const char *flag, const char *sender, const char 
 {
 }
 
+/*
 // -- Waveform -----------------------------------------------------
 #ifndef HAS_OPENGL
 bool init_renderer_objs()
@@ -583,3 +589,4 @@ bool init_renderer_objs()
 }
 #endif // !HAS_OPENGL
 // -- Waveform -----------------------------------------------------
+*/

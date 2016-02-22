@@ -38,9 +38,13 @@
 #endif
 #else
 #ifdef _WIN32
-#include <d3d11_1.h>
+//dx11 is not working for me.
+/*
+#include <d3d11_1.h> 
 #include <DirectXMath.h>
 #include <DirectXPackedVector.h>
+*/
+#include <D3D9.h>
 #endif
 #endif
 // -- Waveform -----------------------------------------------------
@@ -56,6 +60,7 @@
 // -- Waveform -----------------------------------------------------
 char g_visName[512];
 #ifndef HAS_OPENGL
+/*
 ID3D11Device*             g_device = NULL;
 ID3D11DeviceContext*      g_context = NULL;
 ID3D11VertexShader*       g_vShader = NULL;
@@ -80,13 +85,15 @@ struct cbViewPort
   float g_viewPortHeigh;
   float align1, align2;
 };
-
+*/
+LPDIRECT3DDEVICE9 g_device;
 #else
 void* g_device;
 #endif
 float g_fWaveform[2][512];
 
 #ifdef HAS_OPENGL
+/*
 typedef struct {
   int TopLeftX;
   int TopLeftY;
@@ -95,10 +102,20 @@ typedef struct {
   int MinDepth;
   int MaxDepth;
 } D3D11_VIEWPORT;
+*/
+typedef struct {
+  int X;
+  int Y;
+  int Width;
+  int Height;
+  int MinZ;
+  int MaxZ;
+} D3DVIEWPORT9;
 typedef unsigned long D3DCOLOR;
 #endif
 
-D3D11_VIEWPORT g_viewport;
+//D3D11_VIEWPORT g_viewport;
+D3DVIEWPORT9  g_viewport;
 
 struct Vertex_t
 {
@@ -106,13 +123,20 @@ struct Vertex_t
 #ifdef HAS_OPENGL
   D3DCOLOR  col;
 #else
-  XMFLOAT4 col;
+  //XMFLOAT4 col;
+  D3DCOLOR  col;
 #endif
 };
 
 #ifndef HAS_OPENGL
+#define VERTEX_FORMAT     (D3DFVF_XYZ | D3DFVF_DIFFUSE)
+#endif
+
+/*
+#ifndef HAS_OPENGL
 bool init_renderer_objs();
 #endif 
+*/
 // -- Waveform -----------------------------------------------------
 
 #endif
