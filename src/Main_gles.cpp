@@ -61,7 +61,7 @@ extern "C" ADDON_STATUS ADDON_Create(void* hdl, void* props)
   // changing data from this visualization.
   wt.wavforhue.RegisterHue();
   // Send the register command to the Hue bridge.
-  wt.transferQueue();
+  wt.transferQueueToMain();
   // -- Wavforhue function calls -------------------------------------
 
 
@@ -85,7 +85,7 @@ extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, con
 
   // -- Threading ---------------------------------------------------
   // Put this/these light request on the thread's queue.
-  wt.transferQueue();
+  wt.transferQueueToMain();
   // -- Threading ---------------------------------------------------
 }
 
@@ -102,7 +102,7 @@ extern "C" void ADDON_Stop()
 
   // -- Threading ---------------------------------------------------
   // Put this/these light request on the thread's queue.
-  wt.transferQueue();
+  wt.transferQueueToMain();
   // -- Threading ---------------------------------------------------
 
   //-- Threading -----------------------------------------------------
@@ -192,7 +192,7 @@ extern "C" void AudioData(const float* pAudioData, int iAudioDataLength, float *
 
   // -- Threading ---------------------------------------------------
   // Put this/these light request on the thread's queue.
-  wt.transferQueue();
+  wt.transferQueueToThread();
   // -- Threading ---------------------------------------------------
 
 }
