@@ -1,5 +1,9 @@
 /*
-*      Copyright (C) 2008-2016 Team Kodi
+*      Copyright (C) 2015-2016 Thomas M. Hardy
+*      Copyright (C) 2003-2016 Team Kodi
+*      Copyright (C) 1998-2000 Peter Alm, Mikael Alm, Olle Hallnas, 
+*                              Thomas Nilsson and 4Front Technologies
+*
 *      http://kodi.tv
 *
 *  This Program is free software; you can redistribute it and/or modify
@@ -17,6 +21,12 @@
 *  <http://www.gnu.org/licenses/>.
 *
 */
+
+/*
+ *  Wed May 24 10:49:37 CDT 2000
+ *  Fixes to threading/context creation for the nVidia X4 drivers by
+ *  Christian Zander <phoenix@minion.de>
+ */
 
 #ifndef WAVFORHUE_MAIN
 #include "Main.h"

@@ -7,10 +7,14 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR})
 find_package(kodi REQUIRED)
 find_package(CURL REQUIRED)
 
+set(WAVFORHUE_HEADERS src/Main.h
+                      src/FFT.h
+                      src/WavforHue.h
+                      src/WavforHue_Thread.h
 set(WAVFORHUE_SOURCES src/Main.cpp
-                      src/fft.cpp
-                      src/wavforhue.cpp
-                      src/wavforhue_thread.cpp)
+                      src/FFT.cpp
+                      src/WavforHue.cpp
+                      src/WavforHue_Thread.cpp)
 
 if(WIN32)
   set(SHADER_FILES src/DefaultVertexShader.hlsl
@@ -49,13 +53,20 @@ else()
     if(OPENGLES2_FOUND)
       set(INCLUDES ${OPENGLES2_INCLUDE_DIR})
       add_definitions(-DHAS_GLES2)
+      set(WAVFORHUE_HEADERS src/Main_gles.h
+                            src/FFT.h
+                            src/WavforHue.h
+                            src/WavforHue_Thread.h
+                            src/VisGUIShader.h
+                            src/VisMatrixGLES.h
+                            src/VisShader.h)
       set(WAVFORHUE_SOURCES src/Main_gles.cpp
-                           src/fft.cpp
-                           src/wavforhue.cpp
-                           src/wavforhue_thread.cpp
-                           src/VisGUIShader.cpp
-                           src/VisMatrixGLES.cpp
-                           src/VisShader.cpp)
+                            src/FFT.cpp
+                            src/WavforHue.cpp
+                            src/WavforHue_Thread.cpp
+                            src/VisGUIShader.cpp
+                            src/VisMatrixGLES.cpp
+                            src/VisShader.cpp)
       set(DEPLIBS ${OPENGLES2_LIBRARIES})
     else()
       message(FATAL_ERROR "No rendering API found. Bailing")

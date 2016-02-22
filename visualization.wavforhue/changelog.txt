@@ -7,3 +7,6 @@ v0.0.2
 
 v0.0.3
 - multithreading to prevent waveform and music from stuttering
+
+v0.0.4
+- easy pairing with the Hue Bridge

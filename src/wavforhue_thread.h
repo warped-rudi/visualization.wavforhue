@@ -1,5 +1,6 @@
 /*
-*      Copyright (C) 2008-2016 Team Kodi
+*      Copyright (C) 2015-2016 Thomas M. Hardy
+*      Copyright (C) 2005-2016 Team Kodi
 *      http://kodi.tv
 *
 *  This Program is free software; you can redistribute it and/or modify
@@ -37,7 +38,7 @@
 // This happens when windows.h is included before curl.h.
 // Did I mention I don't like curl?
 #ifndef WAVFORHUE
-#include "wavforhue.h"
+#include "WavforHue.h"
 #endif
 
 // -- Threading ----------------------------------------------------

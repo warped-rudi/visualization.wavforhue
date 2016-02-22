@@ -1,5 +1,6 @@
 /*
-*      Copyright (C) 2008-2016 Team Kodi
+*      Copyright (C) 2015-2016 Thomas M. Hardy
+*      Copyright (C) 2003-2016 Team Kodi
 *      http://kodi.tv
 *
 *  This Program is free software; you can redistribute it and/or modify
@@ -19,7 +20,7 @@
 */
 
 #ifndef WAVFORHUE_THREAD
-#include "wavforhue_thread.h"
+#include "WavforHue_Thread.h"
 #endif
 
 
