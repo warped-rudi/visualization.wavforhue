@@ -77,30 +77,45 @@ void WavforHue_Thread::workerThread()
     while (!mQueue.empty())
     {
       putData = mQueue.front(); mQueue.pop();
-      CURL *curl;
-      CURLcode res;
-      curl = curl_easy_init();
-      // Now specify we want to PUT data, but not using a file, so it has o be a CUSTOMREQUEST
-      curl_easy_setopt(curl, CURLOPT_TCP_NODELAY, 1);
-      curl_easy_setopt(curl, CURLOPT_TIMEOUT, 3L);
-      if(putData.url.substr(putData.url.length() - 3) == "api")
-        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
-      else
-        curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
-      // This eliminates all kinds of HTTP responses from showing up in stdin.
-      //curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &WavforHue_Thread::noop_cb);
-      curl_easy_setopt(curl, CURLOPT_POSTFIELDS, putData.json.c_str());
-      // Set the URL that is about to receive our POST. 
-      curl_easy_setopt(curl, CURLOPT_URL, putData.url.c_str());
-      // Perform the request, res will get the return code
-      res = curl_easy_perform(curl);
-      // always cleanup curl
-      curl_easy_cleanup(curl);
+      curlCall(putData);
     }
   }
 }
 
-void WavforHue_Thread::transferQueue()
+void WavforHue_Thread::curlCall(PutData putData)
+{
+  CURL *curl;
+  CURLcode res;
+  curl = curl_easy_init();
+  // Now specify we want to PUT data, but not using a file, so it has o be a CUSTOMREQUEST
+  curl_easy_setopt(curl, CURLOPT_TCP_NODELAY, 1);
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT, 3L);
+  if(putData.url.substr(putData.url.length() - 3) == "api")
+    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
+  else
+    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
+  // This eliminates all kinds of HTTP responses from showing up in stdin.
+  //curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &WavforHue_Thread::noop_cb);
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, putData.json.c_str());
+  // Set the URL that is about to receive our POST. 
+  curl_easy_setopt(curl, CURLOPT_URL, putData.url.c_str());
+  // Perform the request, res will get the return code
+  res = curl_easy_perform(curl);
+  // always cleanup curl
+  curl_easy_cleanup(curl);
+}
+
+void WavforHue_Thread::transferQueueToMain()
+{
+	PutData putData;
+	while (!wavforhue.queue.empty())
+	{
+    putData = wavforhue.queue.front(); wavforhue.queue.pop();
+    curlCall(putData);
+  }
+}
+
+void WavforHue_Thread::transferQueueToThread()
 {
   PutData putData;
   gRunThread = true;

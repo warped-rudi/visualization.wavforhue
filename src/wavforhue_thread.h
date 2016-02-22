@@ -18,22 +18,10 @@
 *
 */
 
-#ifndef WAVFORHUE
-#include "wavforhue.h"
-#endif
-
 #ifndef WAVFORHUE_THREAD
 #define WAVEFORHUE_THREAD
 
 // -- cURL -- I hate cURL ------------------------------------------
-// -----------------------------------------------------------------
-// This is a workaround so I can build and test on my f'ed up 
-// Windows 7 box. Take this out if you are not me!! It will break
-// curl in Kodi if left here.
-#ifdef _WIN32
-#include <WinSock2.h>
-#endif
-// -----------------------------------------------------------------
 #include <curl/curl.h>
 // -- cURL -- I hate cURL ------------------------------------------
 
@@ -45,6 +33,12 @@
 #include <queue>
 // -- Threading ----------------------------------------------------
 
+// Included last to prevent including winsock.h on Windows.
+// This happens when windows.h is included before curl.h.
+// Did I mention I don't like curl?
+#ifndef WAVFORHUE
+#include "wavforhue.h"
+#endif
 
 // -- Threading ----------------------------------------------------
 class WavforHue_Thread
@@ -62,7 +56,9 @@ public:
 
   size_t noop_cb(void *ptr, size_t size, size_t nmemb, void *data);
   void workerThread();
-  void transferQueue();
+  void curlCall(PutData putData);
+  void transferQueueToThread();
+  void transferQueueToMain();
 };
 
 

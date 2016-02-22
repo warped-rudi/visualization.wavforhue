@@ -18,8 +18,6 @@
 *
 */
 
-
-
 #ifndef WAVFORHUE
 #define WAVFORHUE
 
@@ -35,7 +33,6 @@
 // -- Fast Fourier Transforms --------------------------------------
 #include "fft.h"
 // -- Fast Fourier Transforms --------------------------------------
-
 
 // -- Time Analyzer ------------------------------------------------
 #ifdef _WIN32

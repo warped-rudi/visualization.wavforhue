@@ -21,12 +21,7 @@
 #ifndef WAVFORHUE_MAIN
 #define WAVFORHUE_MAIN
 
-#include <xbmc_vis_dll.h>
 #include <cstring>
-
-#ifndef WAVFORHUE
-#include "wavforhue.h"
-#endif
 
 #ifndef WAVFORHUE_THREAD
 #include "wavforhue_thread.h"
@@ -50,6 +45,13 @@
 #endif
 // -- Waveform -----------------------------------------------------
 
+// Included last to prevent including winsock.h on Windows.
+// This happens when windows.h is included before curl.h.
+// Did I mention I don't like curl?
+#ifndef WAVFORHUE
+#include "wavforhue.h"
+#endif
+#include <xbmc_vis_dll.h> 
 
 // -- Waveform -----------------------------------------------------
 char g_visName[512];
