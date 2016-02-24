@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <settings>
+  <setting id="discover_bridge" type="action" label="30020" action="RunScript(visualization.wavforhue,action=discover)" />
   <setting id="UseWaveForm"    type="bool"       label="30006" default="true"/>
   <setting id="HueBridgeIP"    type="ipaddress"  label="30000" default="192.168.10.6"/>
   <setting 					   type="lsep"       label="30013" />
