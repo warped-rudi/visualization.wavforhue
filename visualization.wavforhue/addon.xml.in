@@ -7,7 +7,6 @@
   <extension
     point="xbmc.player.musicviz"
     library_@PLATFORM@="@LIBRARY_FILENAME@"/>
-  <extension point="xbmc.service" library_@PLATFORM@="config.py"></extension>
   <extension point="xbmc.addon.metadata">
     <summary lang="af">Visualisering wat 2 golfvorm grafieke op die skerm vertoon</summary>
     <summary lang="ar">التصوير يظهر2 رسم بياني موجي على الشاشة</summary>
