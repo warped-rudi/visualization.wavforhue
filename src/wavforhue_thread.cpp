@@ -85,13 +85,34 @@ void WavforHue_Thread::workerThread()
 
 void WavforHue_Thread::curlCall(PutData putData)
 {
+  /*
+  XCURL::CURL_HANDLE *curl;
+  XCURL::CURLcode res;
+  curl = XCURL::curl_easy_init();
+  // Now specify we want to PUT data, but not using a file, so it has o be a CUSTOMREQUEST
+  XCURL::curl_easy_setopt(curl, XCURL::CURLOPT_TCP_NODELAY, 1);
+  XCURL::curl_easy_setopt(curl, XCURL::CURLOPT_TIMEOUT, 3L);
+  if(putData.url.substr(putData.url.length() - 3) == "api")
+    XCURL::curl_easy_setopt(curl, XCURL::CURLOPT_CUSTOMREQUEST, "POST");
+  else
+    XCURL::curl_easy_setopt(curl, XCURL::CURLOPT_CUSTOMREQUEST, "PUT");
+  // This eliminates all kinds of HTTP responses from showing up in stdin.
+  curl_easy_setopt(curl, XCURL::CURLOPT_WRITEFUNCTION, &WavforHue_Thread::noop_cb);
+  curl_easy_setopt(curl, XCURL::CURLOPT_POSTFIELDS, putData.json.c_str());
+  // Set the URL that is about to receive our POST. 
+  curl_easy_setopt(curl, XCURL::CURLOPT_URL, putData.url.c_str());
+  // Perform the request, res will get the return code
+  res = XCURL::curl_easy_perform(curl);
+  // always cleanup curl
+  XCURL::curl_easy_cleanup(curl);
+  */
   CURL *curl;
   CURLcode res;
   curl = curl_easy_init();
   // Now specify we want to PUT data, but not using a file, so it has o be a CUSTOMREQUEST
   curl_easy_setopt(curl, CURLOPT_TCP_NODELAY, 1);
   curl_easy_setopt(curl, CURLOPT_TIMEOUT, 3L);
-  if(putData.url.substr(putData.url.length() - 3) == "api")
+  if (putData.url.substr(putData.url.length() - 3) == "api")
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
   else
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");

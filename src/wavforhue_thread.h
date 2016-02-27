@@ -24,6 +24,7 @@
 
 // -- cURL -- I hate cURL ------------------------------------------
 #include <curl/curl.h>
+//#include "../../xbmc/xbmc/filesystem/DllLibCurl.h"
 // -- cURL -- I hate cURL ------------------------------------------
 
 // -- Threading ----------------------------------------------------

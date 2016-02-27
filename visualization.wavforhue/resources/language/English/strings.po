@@ -1,21 +1,23 @@
-# Kodi Media Center language file
-# Addon Name: WavforHue
-# Addon id: visualization.wavforhue
-# Addon Provider: hardyt
-# Translators:
 msgid ""
 msgstr ""
 "Project-Id-Version: visualization.wavforhue\n"
 "Report-Msgid-Bugs-To: http://trac.xbmc.org/\n"
 "POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"PO-Revision-Date: 2016-02-24 06:24+0000\n"
+"PO-Revision-Date: Fri Feb 26 2016 18:08:51 GMT-0700 (Mountain Standard Time)\n"
 "Last-Translator: Tom Hardy\n"
-"Language-Team: English (United States) (http://www.transifex.com/usa-1/visualizationwavforhue/language/en_US/)\n"
+"Language-Team: English (http://www.transifex.com/usa-"
+"1/visualizationwavforhue/language/en/)\n"
+"Language: English (http://www.transifex.com/usa-"
+"1/visualizationwavforhue/language/en/)\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: en_US\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"X-Loco-Source-Locale: en_US\n"
+"X-Loco-Parser: loco_parse_po\n"
+"X-Loco-Target-Locale: en\n"
+"X-Generator: Loco - https://localise.biz/"
 
 msgctxt "#30000"
 msgid "Hue Bridge IP Address"
@@ -65,10 +67,6 @@ msgctxt "#30011"
 msgid "Dimmed lights saturation"
 msgstr "Dimmed lights saturation"
 
-msgctxt "#30012"
-msgid "Lights on after?"
-msgstr "Lights on after?"
-
 msgctxt "#30013"
 msgid "Active Lights"
 msgstr "Active Lights"
@@ -94,13 +92,38 @@ msgid "Saturation for after"
 msgstr "Saturation for after"
 
 msgctxt "#30019"
-msgid "Lights IDs (others will turn off)"
-msgstr "Lights IDs (others will turn off)"
+msgid "IDs of lights that will remain on"
+msgstr "IDs of lights that will remain on"
 
 msgctxt "#30020"
 msgid "Hue Bridge Registration"
 msgstr "Hue Bridge Registration"
 
+#, c-format
 msgctxt "#30050"
 msgid "%2.0f bulbs"
 msgstr "%2.0f bulbs"
+
+msgctxt "#30021"
+msgid "Lights"
+msgstr "Lights"
+
+msgctxt "#30022"
+msgid "Setup"
+msgstr "Setup"
+
+msgctxt "#30023"
+msgid "Behavior"
+msgstr "Behavior"
+
+msgctxt "#30024"
+msgid "Bridge User"
+msgstr "Bridge User"
+
+msgctxt "#30025"
+msgid "Debug Mode?"
+msgstr "Debug Mode?"
+
+msgctxt "#30012"
+msgid "Return lights to prior state at stop?"
+msgstr "Return lights to prior state at stop?"

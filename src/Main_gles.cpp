@@ -73,9 +73,9 @@ extern "C" ADDON_STATUS ADDON_Create(void* hdl, void* props)
   // 30 seconds to register this visualization with the Hue bridge.
   // Without registration, the Hue bridge won't accept the light
   // changing data from this visualization.
-  wt.wavforhue.RegisterHue();
+  //wt.wavforhue.RegisterHue();
   // Send the register command to the Hue bridge.
-  wt.transferQueueToMain();
+  //wt.transferQueueToMain();
   // -- Wavforhue function calls -------------------------------------
 
 
@@ -408,7 +408,15 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
     array = (char*)value;
     wt.wavforhue.strHueBridgeIPAddress = std::string(array);
   }
+  else if (strcmp(strSetting, "hueBridgeUser") == 0)
+  {
+    char* array;
+    array = (char*)value;
+    wt.wavforhue.strHueBridgeUser = std::string(array);
+  }
   //----------------------------------------------------------  
+  else if (strcmp(strSetting, "priorState") == 0)
+    wt.wavforhue.priorState = *(bool*)value == 1;
   else if (strcmp(strSetting, "ActiveLights") == 0)
   {
     char* array;
@@ -471,8 +479,6 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
   else if (strcmp(strSetting, "DimmedHue") == 0)
     wt.wavforhue.dimmedHueData.hue = *(int*)value;
   //----------------------------------------------------------
-  else if (strcmp(strSetting, "LightsOnAfter") == 0)
-    wt.wavforhue.lightsOnAfter = *(bool*)value == 1;
   else if (strcmp(strSetting, "AfterLights") == 0)
   {
     char* array;
@@ -489,7 +495,14 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
     }
     //do the last light token
     wt.wavforhue.afterHueData.lightIDs.push_back(afterLightIDsUnsplit.substr(last));
-    wt.wavforhue.afterHueData.numberOfLights = wt.wavforhue.afterHueData.lightIDs.size();
+    if (wt.wavforhue.afterHueData.lightIDs[0].size() == 0)
+    {
+      wt.wavforhue.afterHueData.numberOfLights = 0;
+    }
+    else
+    {
+      wt.wavforhue.afterHueData.numberOfLights = wt.wavforhue.afterHueData.lightIDs.size();
+    }
   }
   else if (strcmp(strSetting, "AfterBri") == 0)
     wt.wavforhue.afterHueData.bri = *(int*)value;

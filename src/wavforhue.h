@@ -96,12 +96,12 @@ public:
     std::vector<std::string> lightIDs;
     bool on, off;
   };
-  bool useWaveForm, lightsOnAfter;
-  std::string strHueBridgeIPAddress;
+  std::string strHueBridgeIPAddress, strHueBridgeUser;
   HueData afterHueData, dimmedHueData, activeHueData;
   int lastHue, initialHue, targetHue, maxBri, targetBri, currentBri;
   float beatThreshold;
   std::queue<PutData> queue;
+  bool useWaveForm, priorState;
   // -- Hue Information ----------------------------------------------------
 
   // -- Colors -------------------------------------------------------------
@@ -123,7 +123,7 @@ public:
   // -- Workaround for OpenELEC imx6 ---------------------------------------
 
   // -- Functions ----------------------------------------------------------
-  void RegisterHue();
+  //void RegisterHue(); // Completed with config.py
   void AnalyzeSound();
   void TurnLightsOn(HueData hueData);
   void TurnLightsOff(HueData hueData);
@@ -148,6 +148,10 @@ private:
   float fFPS = 0;
   // -- Time Analyzer ------------------------------------------------------
 
+  // -- Hue Information ----------------------------------------------------
+  std::vector<HueData> priorHueData;
+  // -- Hue Information ----------------------------------------------------
+
   // -- Functions ----------------------------------------------------------
   void hsvToRgb(float h, float s, float v, float _rgb[]);
   void huePutRequest(HueData hueData);
@@ -158,6 +162,7 @@ private:
   void CycleLights();
   float AdjustRateToFPS(float per_frame_decay_rate_at_fps1, float fps1, float actual_fps);
   void InitTime();  
+  void GetPriorStates();
   // -- Functions ----------------------------------------------------------
 
 

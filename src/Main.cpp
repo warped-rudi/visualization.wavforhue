@@ -32,7 +32,10 @@
 #include "Main.h"
 #endif
 
+using namespace ADDON;
+
 WavforHue_Thread wt;
+CHelper_libXBMC_addon *XBMC = NULL;
 
 //-- Create -------------------------------------------------------------------
 // Called on load. Addon should fully initalize or return error status
@@ -45,6 +48,13 @@ extern "C" ADDON_STATUS ADDON_Create(void* hdl, void* props)
   // -- Waveform -----------------------------------------------------
   VIS_PROPS* visProps = (VIS_PROPS*)props;
 
+  XBMC = new CHelper_libXBMC_addon;
+  if (!XBMC->RegisterMe(hdl)) {
+    SAFE_DELETE(XBMC);
+    return ADDON_STATUS_PERMANENT_FAILURE;
+  }
+
+  
   /*
 #ifdef HAS_OPENGL
   g_device = visProps->device;
@@ -82,20 +92,21 @@ extern "C" ADDON_STATUS ADDON_Create(void* hdl, void* props)
   wt.wavforhue.activeHueData.lightIDs.push_back("3");
   wt.wavforhue.dimmedHueData.lightIDs.push_back("4");
   wt.wavforhue.dimmedHueData.lightIDs.push_back("5");
-  wt.wavforhue.dimmedHueData.lightIDs.push_back("4");
+  wt.wavforhue.afterHueData.lightIDs.push_back("4");
 
   // Register this app with hue. It runs everytime you press play.
   // This allows something to press their bridge button within
   // 30 seconds to register this visualization with the Hue bridge.
   // Without registration, the Hue bridge won't accept the light
   // changing data from this visualization.
-  wt.wavforhue.RegisterHue();
+  //wt.wavforhue.RegisterHue();
   // Send the register command to the Hue bridge.
-  wt.transferQueueToMain();
+  //wt.transferQueueToMain();
 
   // -- WavforHue function calls -------------------------------------
 
   return ADDON_STATUS_NEED_SAVEDSETTINGS;
+  //return ADDON_STATUS_OK;
 }
 
 //-- Start --------------------------------------------------------------------
@@ -103,6 +114,9 @@ extern "C" ADDON_STATUS ADDON_Create(void* hdl, void* props)
 //-----------------------------------------------------------------------------
 extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, const char* szSongName)
 {
+
+  XBMC->Log(LOG_DEBUG, "WavforHue Starting");
+
   // -- WavforHue function calls -------------------------------------
   // Prepare lights - dimming, turning on, etc.
   wt.wavforhue.Start();
@@ -441,16 +455,24 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
   if (!strSetting || !value)
     return ADDON_STATUS_UNKNOWN;
 
-  if (strcmp(strSetting, "UseWaveForm") == 0)
+  if (strcmp(strSetting, "useWaveForm") == 0)
     wt.wavforhue.useWaveForm = *(bool*)value == 1;
-  else if (strcmp(strSetting, "HueBridgeIP") == 0)
+  else if (strcmp(strSetting, "hueBridgeIP") == 0)
   {
     char* array;
     array = (char*)value;
     wt.wavforhue.strHueBridgeIPAddress = std::string(array);
   }
-  //----------------------------------------------------------  
-  else if (strcmp(strSetting, "ActiveLights") == 0)
+  else if (strcmp(strSetting, "hueBridgeUser") == 0)
+  {
+    char* array;
+    array = (char*)value;
+    wt.wavforhue.strHueBridgeUser = std::string(array);
+  }
+  //---------------------------------------------------------- 
+  else if (strcmp(strSetting, "priorState") == 0)
+    wt.wavforhue.priorState = *(bool*)value == 1;
+  else if (strcmp(strSetting, "activeLights") == 0)
   {
     char* array;
     array = (char*)value;
@@ -468,19 +490,19 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
     wt.wavforhue.activeHueData.lightIDs.push_back(activeLightIDsUnsplit.substr(last));
     wt.wavforhue.activeHueData.numberOfLights = wt.wavforhue.activeHueData.lightIDs.size();
   }
-  else if (strcmp(strSetting, "BeatThreshold") == 0)
+  else if (strcmp(strSetting, "beatThreshold") == 0)
     wt.wavforhue.beatThreshold = *(float*)value;
-  else if (strcmp(strSetting, "MaxBri") == 0)
+  else if (strcmp(strSetting, "maxBri") == 0)
     wt.wavforhue.maxBri = *(int*)value;
-  else if (strcmp(strSetting, "HueRangeUpper") == 0)
+  else if (strcmp(strSetting, "hueRangeUpper") == 0)
   {
     wt.wavforhue.lastHue = *(int*)value;
     wt.wavforhue.initialHue = wt.wavforhue.lastHue;
   }
-  else if (strcmp(strSetting, "HueRangeLower") == 0)
+  else if (strcmp(strSetting, "hueRangeLower") == 0)
     wt.wavforhue.targetHue = *(int*)value;
   //----------------------------------------------------------
-  else if (strcmp(strSetting, "DimmedLights") == 0)
+  else if (strcmp(strSetting, "dimmedLights") == 0)
   {
     char* array;
     array = (char*)value;
@@ -505,16 +527,14 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
       wt.wavforhue.dimmedHueData.numberOfLights = wt.wavforhue.dimmedHueData.lightIDs.size();
     }
   }
-  else if (strcmp(strSetting, "DimmedBri") == 0)
+  else if (strcmp(strSetting, "dimmedBri") == 0)
     wt.wavforhue.dimmedHueData.bri = *(int*)value;
-  else if (strcmp(strSetting, "DimmedSat") == 0)
+  else if (strcmp(strSetting, "dimmedSat") == 0)
     wt.wavforhue.dimmedHueData.sat = *(int*)value;
-  else if (strcmp(strSetting, "DimmedHue") == 0)
+  else if (strcmp(strSetting, "dimmedHue") == 0)
     wt.wavforhue.dimmedHueData.hue = *(int*)value;
   //----------------------------------------------------------
-  else if (strcmp(strSetting, "LightsOnAfter") == 0)
-    wt.wavforhue.lightsOnAfter = *(bool*)value == 1;
-  else if (strcmp(strSetting, "AfterLights") == 0)
+  else if (strcmp(strSetting, "afterLights") == 0)
   {
     char* array;
     array = (char*)value;
@@ -530,16 +550,23 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
     }
     //do the last light token
     wt.wavforhue.afterHueData.lightIDs.push_back(afterLightIDsUnsplit.substr(last));
-    wt.wavforhue.afterHueData.numberOfLights = wt.wavforhue.afterHueData.lightIDs.size();
+    if (wt.wavforhue.afterHueData.lightIDs[0].size() == 0)
+    {
+      wt.wavforhue.afterHueData.numberOfLights = 0;
+    }
+    else
+    {
+      wt.wavforhue.afterHueData.numberOfLights = wt.wavforhue.afterHueData.lightIDs.size();
+    }
   }
-  else if (strcmp(strSetting, "AfterBri") == 0)
+  else if (strcmp(strSetting, "afterBri") == 0)
     wt.wavforhue.afterHueData.bri = *(int*)value;
-  else if (strcmp(strSetting, "AfterSat") == 0)
+  else if (strcmp(strSetting, "afterSat") == 0)
     wt.wavforhue.afterHueData.sat = *(int*)value;
-  else if (strcmp(strSetting, "AfterHue") == 0)
+  else if (strcmp(strSetting, "afterHue") == 0)
     wt.wavforhue.afterHueData.hue = *(int*)value;
   //----------------------------------------------------------
-  else if (strcmp(strSetting, "CuboxHDMIFix") == 0)
+  else if (strcmp(strSetting, "cuboxHDMIFix") == 0)
     wt.wavforhue.cuboxHDMIFix = *(bool*)value == 1;
   else
     return ADDON_STATUS_UNKNOWN;

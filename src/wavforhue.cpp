@@ -28,8 +28,8 @@ WavforHue::WavforHue()
 {
   // -- Hue Information ----------------------------------------------------
   useWaveForm = true;
-  lightsOnAfter = false;
   strHueBridgeIPAddress = "192.168.10.6";
+  strHueBridgeIPAddress = "KodiVisWave";
   currentBri = 75;
   beatThreshold = 0.25f;
   activeHueData.numberOfLights = 3;
@@ -103,12 +103,19 @@ void WavforHue::hsvToRgb(float h, float s, float v, float _rgb[]) {
   _rgb[2] = b;
 }
 
+/*
 void WavforHue::RegisterHue()
 {
   PutData _putData;
   _putData.url = "http://" + strHueBridgeIPAddress + "/api";
   _putData.json = "{\"devicetype\":\"Kodi\",\"username\":\"KodiVisWave\"}";
   queue.push(_putData);
+}
+*/
+
+void WavforHue::GetPriorStates()
+{
+  //
 }
 
 void WavforHue::huePutRequest(HueData hueData)
@@ -139,7 +146,7 @@ void WavforHue::huePutRequest(HueData hueData)
   for (int i = 0; i < hueData.numberOfLights; i++)
   {
     strURLLight = "http://" + strHueBridgeIPAddress +
-      "/api/KodiVisWave/lights/" + hueData.lightIDs[i] + "/state";
+      "/api/" + strHueBridgeUser + "/lights/" + hueData.lightIDs[i] + "/state";
 
     //put this light request on the stack
     _putData.url = strURLLight;
@@ -271,6 +278,11 @@ void WavforHue::CycleLights()
 
 void WavforHue::Start()
 {
+  if (priorState)
+  {
+    // Collect the prior states of the lights
+    GetPriorStates();
+  }
   // Turn active lights on
   TurnLightsOn(activeHueData);
   activeHueData.bri = currentBri;
@@ -289,7 +301,7 @@ void WavforHue::Start()
 
 void WavforHue::Stop()
 {
-  if (lightsOnAfter)
+  if (afterHueData.numberOfLights>0)
   {
     TurnLightsOff(activeHueData);
     if (dimmedHueData.numberOfLights>0)

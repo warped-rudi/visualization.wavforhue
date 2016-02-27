@@ -2,19 +2,23 @@ project(visualization.wavforhue)
 
 cmake_minimum_required(VERSION 2.6)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR})
+#set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR})
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})
 
 find_package(kodi REQUIRED)
+find_package(platform REQUIRED)
+find_package(kodiplatform REQUIRED)
 find_package(CURL REQUIRED)
+#find_package(yajl REQUIRED)
 
-set(WAVFORHUE_HEADERS src/Main.h
-                      src/FFT.h
-                      src/WavforHue.h
-                      src/WavforHue_Thread.h
 set(WAVFORHUE_SOURCES src/Main.cpp
                       src/FFT.cpp
                       src/WavforHue.cpp
-                      src/WavforHue_Thread.cpp)
+                      src/WavforHue_Thread.cpp
+                      src/Main.h
+                      src/FFT.h
+                      src/WavforHue.h
+                      src/WavforHue_Thread.h)
 
 if(WIN32)
   set(SHADER_FILES src/DefaultVertexShader.hlsl
@@ -53,20 +57,20 @@ else()
     if(OPENGLES2_FOUND)
       set(INCLUDES ${OPENGLES2_INCLUDE_DIR})
       add_definitions(-DHAS_GLES2)
-      set(WAVFORHUE_HEADERS src/Main_gles.h
-                            src/FFT.h
-                            src/WavforHue.h
-                            src/WavforHue_Thread.h
-                            src/VisGUIShader.h
-                            src/VisMatrixGLES.h
-                            src/VisShader.h)
       set(WAVFORHUE_SOURCES src/Main_gles.cpp
                             src/FFT.cpp
                             src/WavforHue.cpp
                             src/WavforHue_Thread.cpp
                             src/VisGUIShader.cpp
                             src/VisMatrixGLES.cpp
-                            src/VisShader.cpp)
+                            src/VisShader.cpp
+                            src/Main_gles.h
+                            src/FFT.h
+                            src/WavforHue.h
+                            src/WavforHue_Thread.h
+                            src/VisGUIShader.h
+                            src/VisMatrixGLES.h
+                            src/VisShader.h)
       set(DEPLIBS ${OPENGLES2_LIBRARIES})
     else()
       message(FATAL_ERROR "No rendering API found. Bailing")
@@ -74,15 +78,19 @@ else()
   endif()
 endif()
 
-list(APPEND DEPLIBS ${CURL_LIBRARIES})
+list(APPEND DEPLIBS ${CURL_LIBRARIES} ${platform_LIBRARIES} ${kodiplatform_LIBRARIES} )
+#list(APPEND DEPLIBS ${YAJL_INCLUDE_DIR})
+
 if(WIN32)
   list(APPEND DEPLIBS ws2_32)
 endif()
 
 include_directories(${INCLUDES}
-                    ${CURL_INCLUDE_DIR}                 
-                    ${KODI_INCLUDE_DIR})
-
+                    ${CURL_INCLUDE_DIR}  
+                    ${KODI_INCLUDE_DIR}
+                    ${platform_INCLUDE_DIRS}
+                    ${kodiplatform_INCLUDE_DIRS})
+#                    ${YAJL_INCLUDE_DIR}               
 
 
 build_addon(visualization.wavforhue WAVFORHUE DEPLIBS)

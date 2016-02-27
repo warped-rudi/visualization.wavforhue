@@ -66,7 +66,11 @@
 #ifndef WAVFORHUE
 #include "WavforHue.h"
 #endif
+#include <libKODI_guilib.h>
 #include <xbmc_vis_dll.h> 
+#include <libXBMC_addon.h>
+#include "platform/util/util.h"
+extern ADDON::CHelper_libXBMC_addon *XBMC;
 
 // -- Waveform -----------------------------------------------------
 char g_visName[512];
