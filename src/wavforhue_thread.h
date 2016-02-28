@@ -36,9 +36,6 @@
 #endif
 // -- cURL works in *nix, but is crap in Windows -------------------
 
-// -- trim ---------------------------------------------------------
-#include <cctype>
-// -- trim ---------------------------------------------------------
 
 // -- Threading ----------------------------------------------------
 #include <thread>
@@ -47,10 +44,6 @@
 #include <condition_variable>
 #include <queue>
 // -- Threading ----------------------------------------------------
-
-// -- Logging ------------------------------------------------------
-#include <libXBMC_addon.h>
-// -- Logging ------------------------------------------------------
 
 
 #ifndef WAVFORHUE
@@ -61,30 +54,30 @@
 class WavforHue_Thread
 {
 public:
+  std::thread gWorkerThread;
+  std::atomic<bool> gRunThread;
+
   WavforHue wavforhue;
   WavforHue_Thread();
   ~WavforHue_Thread();
 
-  // -- Logging ------------------------------------------------------
-  ADDON::CHelper_libXBMC_addon *XBMC;
-  // -- Logging ------------------------------------------------------
-
-  void transferQueueToThread();
-  void transferQueueToMain();
-  void stop();
+  void GetPriorState();
+  void PutPriorState();
+  void TransferQueueToThread();
+  void TransferQueueToMain();
 
 private:
   std::string response;
-  std::thread gWorkerThread;
+  
   std::mutex gMutex;
   std::condition_variable gThreadConditionVariable;
-  std::atomic<bool> gRunThread;
+  
   bool gReady;
   std::queue<SocketData> gQueue;
 
   static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
-  void workerThread();
-  void httpRequest(SocketData putData);
+  void WorkerThread();
+  void HTTPRequest(SocketData putData);
 };
 
 

@@ -23,6 +23,30 @@
 #include "WavforHue.h"
 #endif
 
+using namespace ADDON;
+CHelper_libXBMC_addon *XBMC = NULL;
+
+
+// -- trim ---------------------------------------------------------
+// trim from start
+static inline std::string &ltrim(std::string &s) {
+  s.erase(s.begin(), std::find_if(s.begin(), s.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
+  return s;
+}
+
+// trim from end
+static inline std::string &rtrim(std::string &s) {
+  s.erase(std::find_if(s.rbegin(), s.rend(), std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
+  return s;
+}
+
+// trim from both ends
+static inline std::string &trim(std::string &s) {
+  return ltrim(rtrim(s));
+}
+// -- trim ---------------------------------------------------------
+
+
 // -- Constructor ---------------------------------------------------- 
 WavforHue::WavforHue()
 {
@@ -42,6 +66,7 @@ WavforHue::WavforHue()
   afterHueData.sat = 255; 
   afterHueData.hue = 65280;
   priorState = false;
+  savedTheStates = false;
   // -- Hue Information ----------------------------------------------------
 
   // -- Colors -------------------------------------------------------------
@@ -69,6 +94,11 @@ WavforHue::WavforHue()
     movingAvgMid[i] = 0;
   }
   // -- Sound Analyzer -----------------------------------------------------
+
+  // -- Debug --------------------------------------------------------------
+  XBMC = new CHelper_libXBMC_addon;
+  debug = false;
+  // -- Debug --------------------------------------------------------------
 }
 // -- Constructor ---------------------------------------------------- 
 
@@ -114,9 +144,66 @@ void WavforHue::RegisterHue()
 }
 */
 
-void WavforHue::GetPriorStates()
+void WavforHue::SaveState(std::string json)
 {
-  //
+  // Let's parse it  
+  Json::Value root;
+  Json::Reader reader;
+  bool parsedSuccess = reader.parse(trim(json),
+    root,
+    false);
+
+  if (!parsedSuccess)
+  {
+    // Report failures and their locations 
+    // in the document.
+    error = "Failed to parse JSON " + reader.getFormattedErrorMessages();
+    XBMC->Log(LOG_DEBUG, error.c_str());
+    abort();
+  }
+
+  if (root.size() > 0) {
+    for (Json::ValueIterator itr = root.begin(); itr != root.end(); itr++) {
+      HueData hueData;
+      hueData.lightIDs.push_back(itr.key().asString());
+      hueData.numberOfLights = 1;
+      if (root[itr.key().asString()]["state"]["on"].asString() == "false")
+      {
+        // The light was off.
+        hueData.off = true;
+        hueData.on = false;
+      }
+      else
+      {
+        // The light was on.
+        hueData.off = false;
+        hueData.on = true;
+        priorStates.push_back(hueData);
+        hueData.on = false;
+        hueData.bri = root[itr.key().asString()]["state"]["bri"].asInt();
+        hueData.hue = root[itr.key().asString()]["state"]["hue"].asInt();
+        hueData.sat = root[itr.key().asString()]["state"]["sat"].asInt();
+        hueData.transitionTime = 15;
+      }
+      
+      priorStates.push_back(hueData);
+      error = "Saving hue data for light " + itr.key().asString();
+      XBMC->Log(LOG_DEBUG, error.c_str());
+    }
+  }
+  savedTheStates = true;
+}
+
+void WavforHue::RestoreState()
+{
+  // This causes an Access Violation?
+  // Put all the prior states on the queue.
+  for (auto &i : priorStates)
+  {
+    huePutRequest(i);
+    //error = "Restoring hue data for light " + i.lightIDs[0];
+    //XBMC->Log(LOG_DEBUG, error.c_str()); 
+  }
 }
 
 void WavforHue::huePutRequest(HueData hueData)
@@ -277,11 +364,6 @@ void WavforHue::CycleLights()
 
 void WavforHue::Start()
 {
-  if (priorState)
-  {
-    // Collect the prior states of the lights
-    GetPriorStates();
-  }
   // Turn active lights on
   TurnLightsOn(activeHueData);
   activeHueData.bri = currentBri;

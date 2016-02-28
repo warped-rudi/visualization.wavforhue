@@ -41,6 +41,17 @@
 #endif
 // -- Time Analyzer ------------------------------------------------
 
+// -- json ---------------------------------------------------------
+#include <cctype>
+#include <functional>
+#include <iostream>
+#include "json/json.h"
+// -- json ---------------------------------------------------------
+
+// -- Debug --------------------------------------------------------------
+#include <libXBMC_addon.h>
+// -- Debug --------------------------------------------------------------
+
 #define BUFFERSIZE 1024
 #define NUM_FREQUENCIES (512)
 
@@ -48,9 +59,10 @@
 #pragma once
 struct SocketData
 {
-  std::string protocol = "http";
+  SocketData(): protocol("http"), port("80"), method("PUT"), json("") { }
+  std::string protocol;
   std::string host;
-  std::string port = "80";
+  std::string port;
   std::string path;
   std::string method;
   std::string json;
@@ -106,6 +118,8 @@ public:
   float beatThreshold;
   std::queue<SocketData> queue;
   bool useWaveForm, priorState;
+  std::vector<HueData> priorStates;
+  bool savedTheStates;
   // -- Hue Information ----------------------------------------------------
 
   // -- Colors -------------------------------------------------------------
@@ -126,6 +140,12 @@ public:
   bool cuboxHDMIFix;
   // -- Workaround for OpenELEC imx6 ---------------------------------------
 
+  // -- Debug --------------------------------------------------------------
+  bool debug;
+  ADDON::CHelper_libXBMC_addon *XBMC;
+  // -- Debug --------------------------------------------------------------
+
+
   // -- Functions ----------------------------------------------------------
   //void RegisterHue(); // Completed with config.py
   void AnalyzeSound();
@@ -135,6 +155,8 @@ public:
   void UpdateTime();
   void Start();
   void Stop();
+  void SaveState(std::string json);
+  void RestoreState();
   WavforHue();
   ~WavforHue();
   // -- Functions ----------------------------------------------------------
@@ -156,6 +178,11 @@ private:
   std::vector<HueData> priorHueData;
   // -- Hue Information ----------------------------------------------------
 
+  // -- Debug --------------------------------------------------------------
+  std::string error;
+  // -- Debug --------------------------------------------------------------
+
+
   // -- Functions ----------------------------------------------------------
   void hsvToRgb(float h, float s, float v, float _rgb[]);
   void huePutRequest(HueData hueData);
@@ -166,7 +193,6 @@ private:
   void CycleLights();
   float AdjustRateToFPS(float per_frame_decay_rate_at_fps1, float fps1, float actual_fps);
   void InitTime();  
-  void GetPriorStates();
   // -- Functions ----------------------------------------------------------
 
 

@@ -35,7 +35,6 @@
 using namespace ADDON;
 
 WavforHue_Thread wt;
-CHelper_libXBMC_addon *XBMC = NULL;
 
 //-- Create -------------------------------------------------------------------
 // Called on load. Addon should fully initalize or return error status
@@ -45,13 +44,12 @@ extern "C" ADDON_STATUS ADDON_Create(void* hdl, void* props)
   if (!props)
     return ADDON_STATUS_UNKNOWN;
 
-  XBMC = new CHelper_libXBMC_addon;
-  if (!XBMC->RegisterMe(hdl)) {
-    SAFE_DELETE(XBMC);
+  
+  if (!wt.wavforhue.XBMC->RegisterMe(hdl)) {
+    SAFE_DELETE(wt.wavforhue.XBMC);
     return ADDON_STATUS_PERMANENT_FAILURE;
   }
 
-  wt.XBMC = XBMC;
 
   // -- Waveform -----------------------------------------------------
   VIS_PROPS* visProps = (VIS_PROPS*)props;
@@ -119,11 +117,10 @@ extern "C" ADDON_STATUS ADDON_Create(void* hdl, void* props)
 //-----------------------------------------------------------------------------
 extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, const char* szSongName)
 {
-
-  XBMC->Log(LOG_DEBUG, "WavforHue in Start()");
-
   // -- WavforHue function calls -------------------------------------
   // Prepare lights - dimming, turning on, etc.
+  if (!wt.wavforhue.savedTheStates)
+    wt.GetPriorState();
   wt.wavforhue.Start();
   if(wt.wavforhue.cuboxHDMIFix)
   {
@@ -134,9 +131,8 @@ extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, con
 
   // -- Threading ---------------------------------------------------
   // Put this/these light request on the thread's queue.
-  wt.transferQueueToMain();
+  wt.TransferQueueToMain();
   // -- Threading ---------------------------------------------------
-  XBMC->Log(LOG_DEBUG, "WavforHue finished Start()");
 }
 
 //-- Stop ---------------------------------------------------------------------
@@ -147,14 +143,22 @@ extern "C" void ADDON_Stop()
 {
   // -- WavforHue function calls -------------------------------------
   // Change the lights to something acceptable.
-  wt.wavforhue.Stop();
+  if (wt.wavforhue.priorState)
+    wt.PutPriorState();
+  else
+    wt.wavforhue.Stop();
   // -- WavforHue function calls -------------------------------------
-
+ 
   // -- Threading ---------------------------------------------------
-  // Put this/these light request on the thread's queue.
-  wt.transferQueueToMain();
-  // Clean up the thread. This causes some delay in Kodi.
-  wt.stop();
+  // Put this/these light request on the thread's queue. 
+  //wt.transferQueueToThread(); // This doesn't work.
+  wt.TransferQueueToMain(); // This causes some delay in Kodi.
+  // Clean up the thread.
+  wt.gRunThread = false;
+  while (wt.gWorkerThread.joinable())  // Kill 'em all \m/
+  {
+    wt.gWorkerThread.join();
+  }
   // -- Threading ---------------------------------------------------
 }
 
@@ -224,7 +228,7 @@ extern "C" void AudioData(const float* pAudioData, int iAudioDataLength, float *
 
   // -- Threading ---------------------------------------------------
   // Put this/these light request on the thread's queue.
-  wt.transferQueueToThread();
+  wt.TransferQueueToThread();
   // -- Threading ---------------------------------------------------
 }
 
@@ -569,10 +573,12 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
     wt.wavforhue.cuboxHDMIFix = *(bool*)value == 1;
   else if (strcmp(strSetting, "config") == 0)
     // do nothing
-    bool do_nothing = true;
+    ((void)0);
   else if (strcmp(strSetting, "debug") == 0)
-    // not implemented yet
-    bool do_nothing = true;
+    wt.wavforhue.debug = *(bool*)value == 1;
+  else if (strcmp(strSetting, "###GetSavedSettings") == 0)
+    // wtf
+    return ADDON_STATUS_UNKNOWN;
   else
   {
     char* array;

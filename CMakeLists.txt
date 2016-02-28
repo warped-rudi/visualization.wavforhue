@@ -10,12 +10,13 @@ find_package(platform REQUIRED)
 #find_package(p8-platform REQUIRED)
 find_package(kodiplatform REQUIRED)
 find_package(CURL REQUIRED)
-#find_package(yajl REQUIRED)
+#find_package(yajl REQUIRED) #why is it so damn difficult to include Kodi's libraries???
 
 set(WAVFORHUE_SOURCES src/Main.cpp
                       src/FFT.cpp
                       src/WavforHue.cpp
                       src/WavforHue_Thread.cpp
+                      src/jsoncpp.cpp
                       src/Main.h
                       src/FFT.h
                       src/WavforHue.h
@@ -65,6 +66,7 @@ else()
                             src/VisGUIShader.cpp
                             src/VisMatrixGLES.cpp
                             src/VisShader.cpp
+                            src/jsoncpp.cpp
                             src/Main_gles.h
                             src/FFT.h
                             src/WavforHue.h
@@ -79,8 +81,7 @@ else()
   endif()
 endif()
 
-list(APPEND DEPLIBS ${CURL_LIBRARIES} ${platform_LIBRARIES} ${kodiplatform_LIBRARIES} )
-#list(APPEND DEPLIBS ${YAJL_INCLUDE_DIR})
+list(APPEND DEPLIBS ${CURL_LIBRARIES} ${platform_LIBRARIES} ${kodiplatform_LIBRARIES} ${YAJL_LIBRARY})
 
 if(WIN32)
   list(APPEND DEPLIBS ws2_32)
@@ -91,7 +92,7 @@ include_directories(${INCLUDES}
                     ${KODI_INCLUDE_DIR}
                     ${platform_INCLUDE_DIRS}
                     ${kodiplatform_INCLUDE_DIRS})
-#                    ${YAJL_INCLUDE_DIR}    
+#                    ${YAJL_INCLUDE_DIR}
 #                    ${p8-platform_INCLUDE_DIRS}           
 
 

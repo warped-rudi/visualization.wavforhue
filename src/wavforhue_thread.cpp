@@ -19,8 +19,6 @@
 *
 */
 
-	
-
 
 #ifndef WAVFORHUE_THREAD
 #include "WavforHue_Thread.h"
@@ -28,24 +26,6 @@
 
 using namespace ADDON;
 
-// -- trim ---------------------------------------------------------
-// trim from start
-static inline std::string &ltrim(std::string &s) {
-  s.erase(s.begin(), std::find_if(s.begin(), s.end(), std::not1(std::ptr_fun<int, int>(std::isspace))));
-  return s;
-}
-
-// trim from end
-static inline std::string &rtrim(std::string &s) {
-  s.erase(std::find_if(s.rbegin(), s.rend(), std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
-  return s;
-}
-
-// trim from both ends
-static inline std::string &trim(std::string &s) {
-  return ltrim(rtrim(s));
-}
-// -- trim ---------------------------------------------------------
 
 // -- Constructor ----------------------------------------------------
 WavforHue_Thread::WavforHue_Thread()
@@ -62,7 +42,7 @@ WavforHue_Thread::~WavforHue_Thread()
 // -- Threading ----------------------------------------------------------
 // This thread keeps cURL from puking all over the waveform, suprising it and
 // making it jerk away.
-void WavforHue_Thread::workerThread()
+void WavforHue_Thread::WorkerThread()
 {
   bool isEmpty;
   SocketData putData;
@@ -96,29 +76,29 @@ void WavforHue_Thread::workerThread()
     while (!mQueue.empty())
     {
       putData = mQueue.front(); mQueue.pop();
-      httpRequest(putData);
+      HTTPRequest(putData);
     }
   }
 }
 
-void WavforHue_Thread::transferQueueToMain()
+void WavforHue_Thread::TransferQueueToMain()
 {
 	SocketData putData;
 	while (!wavforhue.queue.empty())
 	{
     putData = wavforhue.queue.front(); wavforhue.queue.pop();
-    httpRequest(putData);
+    HTTPRequest(putData);
   }
 }
 
-void WavforHue_Thread::transferQueueToThread()
+void WavforHue_Thread::TransferQueueToThread()
 {
   SocketData putData;
   gRunThread = true;
   // Check if the thread is alive yet.
   if (!gWorkerThread.joinable())
   {
-    gWorkerThread = std::thread(&WavforHue_Thread::workerThread, this);
+    gWorkerThread = std::thread(&WavforHue_Thread::WorkerThread, this);
   }
   while (!wavforhue.queue.empty())
   {
@@ -138,14 +118,6 @@ void WavforHue_Thread::transferQueueToThread()
   gThreadConditionVariable.notify_one();
 }
 
-void WavforHue_Thread::stop()
-{
-  gRunThread = false;
-  while (gWorkerThread.joinable())  // Kill 'em all \m/
-  {
-    gWorkerThread.join();
-  }
-}
 //-- Threading -----------------------------------------------------
 
 // -- HTTP functions -----------------------------------------------
@@ -156,7 +128,7 @@ size_t WavforHue_Thread::WriteCallback(void *contents, size_t size, size_t nmemb
   return size * nmemb;
 }
 
-void WavforHue_Thread::httpRequest(SocketData socketData)
+void WavforHue_Thread::HTTPRequest(SocketData socketData)
 {
 #ifndef _WIN32
   CURL *curl;
@@ -195,7 +167,7 @@ void WavforHue_Thread::httpRequest(SocketData socketData)
   iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
   if (iResult != 0) {
     error = "WSAStartup failed with error: " + iResult;
-    XBMC->Log(LOG_DEBUG, error.c_str());
+    wavforhue.XBMC->Log(LOG_DEBUG, error.c_str());
     WSACleanup();
     abort();
   }
@@ -209,7 +181,7 @@ void WavforHue_Thread::httpRequest(SocketData socketData)
   iResult = getaddrinfo(socketData.host.c_str(), socketData.port.c_str(), &hints, &result);
   if (iResult != 0) {
     error = "getaddrinfo failed with error: " + iResult;
-    XBMC->Log(LOG_DEBUG, error.c_str());
+    wavforhue.XBMC->Log(LOG_DEBUG, error.c_str());
     WSACleanup();
     abort();
   }
@@ -222,7 +194,7 @@ void WavforHue_Thread::httpRequest(SocketData socketData)
       ptr->ai_protocol);
     if (ConnectSocket == INVALID_SOCKET) {
       error = "socket failed with error: " + WSAGetLastError();
-      XBMC->Log(LOG_DEBUG, error.c_str());
+      wavforhue.XBMC->Log(LOG_DEBUG, error.c_str());
       WSACleanup();
       abort();
     }
@@ -241,7 +213,7 @@ void WavforHue_Thread::httpRequest(SocketData socketData)
 
   if (ConnectSocket == INVALID_SOCKET) {
     error = "Unable to connect to server!";
-    XBMC->Log(LOG_DEBUG, error.c_str());
+    wavforhue.XBMC->Log(LOG_DEBUG, error.c_str());
     WSACleanup();
     abort();
   }
@@ -267,19 +239,20 @@ void WavforHue_Thread::httpRequest(SocketData socketData)
   iResult = send(ConnectSocket, request.c_str(), request.length(), 0);
   if (iResult == SOCKET_ERROR) {
     error = "send failed with error: " + WSAGetLastError();
-    XBMC->Log(LOG_DEBUG, error.c_str());
+    wavforhue.XBMC->Log(LOG_DEBUG, error.c_str());
     closesocket(ConnectSocket);
     WSACleanup();
     abort();
   }
 
-  //XBMC->Log(LOG_DEBUG, "Connected.");
+  if (wavforhue.debug)
+    wavforhue.XBMC->Log(LOG_DEBUG, "Connected.");
 
   // shutdown the connection since no more data will be sent
   iResult = shutdown(ConnectSocket, SD_SEND);
   if (iResult == SOCKET_ERROR) {
     error = "shutdown failed with error: " + WSAGetLastError();
-    XBMC->Log(LOG_DEBUG, error.c_str());
+    wavforhue.XBMC->Log(LOG_DEBUG, error.c_str());
     closesocket(ConnectSocket);
     WSACleanup();
     abort();
@@ -292,12 +265,14 @@ void WavforHue_Thread::httpRequest(SocketData socketData)
     if (iResult > 0)
       response += std::string(buffer).substr(0, iResult);
     else if (iResult == 0)
-      //XBMC->Log(LOG_DEBUG, "Connection closed.");
-      ((void)0);
+    {
+      if (wavforhue.debug)
+        wavforhue.XBMC->Log(LOG_DEBUG, "Connection closed.");
+    }
     else
     {
       error = "recv failed with error: " + WSAGetLastError();
-      XBMC->Log(LOG_DEBUG, error.c_str());
+      wavforhue.XBMC->Log(LOG_DEBUG, error.c_str());
     }
   } while (iResult > 0);
 
@@ -305,8 +280,37 @@ void WavforHue_Thread::httpRequest(SocketData socketData)
   closesocket(ConnectSocket);
   WSACleanup();
 #endif
-  // Response is holding the json response from the Hue bridge;
-  response = trim(response.substr(response.find("\r\n\r\n")));
-  XBMC->Log(LOG_DEBUG, response.c_str());
+  // response is holding the json response from the Hue bridge;
+  response = response.substr(response.find("\r\n\r\n"));
+  if (wavforhue.debug)
+  {
+    std::string debugResponse = "Hue response: " + response;
+    wavforhue.XBMC->Log(LOG_DEBUG, debugResponse.c_str());
+  }
+    
 }
+
+void WavforHue_Thread::GetPriorState()
+{
+  // Get the json data for the current state.
+  SocketData getData;
+  getData.host = wavforhue.strHueBridgeIPAddress;
+  getData.method = "GET";
+  getData.path = "/api/" + wavforhue.strHueBridgeUser + "/lights";
+  getData.json = "";
+
+  HTTPRequest(getData);
+
+  // Now response should have the json for all the light states
+
+  wavforhue.SaveState(response);
+
+}
+
+void WavforHue_Thread::PutPriorState()
+{
+  wavforhue.RestoreState();
+}
+
+
 // -- HTTP functions -----------------------------------------------
