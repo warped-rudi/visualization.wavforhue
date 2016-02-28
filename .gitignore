@@ -4,3 +4,4 @@ build-android-x86
 cleanCMake.sh
 reset.sh
 Findyajl.cmake
+*.pyo
