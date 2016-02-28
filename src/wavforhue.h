@@ -46,9 +46,13 @@
 
 // -- HTTP requests information ------------------------------------------
 #pragma once
-struct PutData
+struct SocketData
 {
-  std::string url;
+  std::string protocol = "http";
+  std::string host;
+  int port = 80;
+  std::string path;
+  std::string method;
   std::string json;
 };
 // -- HTTP requests information ------------------------------------------
@@ -100,7 +104,7 @@ public:
   HueData afterHueData, dimmedHueData, activeHueData;
   int lastHue, initialHue, targetHue, maxBri, targetBri, currentBri;
   float beatThreshold;
-  std::queue<PutData> queue;
+  std::queue<SocketData> queue;
   bool useWaveForm, priorState;
   // -- Hue Information ----------------------------------------------------
 

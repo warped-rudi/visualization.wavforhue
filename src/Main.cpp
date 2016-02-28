@@ -45,14 +45,16 @@ extern "C" ADDON_STATUS ADDON_Create(void* hdl, void* props)
   if (!props)
     return ADDON_STATUS_UNKNOWN;
 
-  // -- Waveform -----------------------------------------------------
-  VIS_PROPS* visProps = (VIS_PROPS*)props;
-
   XBMC = new CHelper_libXBMC_addon;
   if (!XBMC->RegisterMe(hdl)) {
     SAFE_DELETE(XBMC);
     return ADDON_STATUS_PERMANENT_FAILURE;
   }
+
+  wt.XBMC = XBMC;
+
+  // -- Waveform -----------------------------------------------------
+  VIS_PROPS* visProps = (VIS_PROPS*)props;
 
   
   /*
@@ -72,6 +74,7 @@ extern "C" ADDON_STATUS ADDON_Create(void* hdl, void* props)
     return ADDON_STATUS_PERMANENT_FAILURE;
 #endif
   */
+  
 #ifndef HAS_OPENGL  
   g_device = (LPDIRECT3DDEVICE9)visProps->device;
 #else
@@ -93,6 +96,7 @@ extern "C" ADDON_STATUS ADDON_Create(void* hdl, void* props)
   wt.wavforhue.dimmedHueData.lightIDs.push_back("4");
   wt.wavforhue.dimmedHueData.lightIDs.push_back("5");
   wt.wavforhue.afterHueData.lightIDs.push_back("4");
+  
 
   // Register this app with hue. It runs everytime you press play.
   // This allows something to press their bridge button within
@@ -105,6 +109,7 @@ extern "C" ADDON_STATUS ADDON_Create(void* hdl, void* props)
 
   // -- WavforHue function calls -------------------------------------
 
+  //return ADDON_STATUS_NEED_SETTINGS;
   return ADDON_STATUS_NEED_SAVEDSETTINGS;
   //return ADDON_STATUS_OK;
 }
@@ -115,7 +120,7 @@ extern "C" ADDON_STATUS ADDON_Create(void* hdl, void* props)
 extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, const char* szSongName)
 {
 
-  XBMC->Log(LOG_DEBUG, "WavforHue Starting");
+  XBMC->Log(LOG_DEBUG, "WavforHue in Start()");
 
   // -- WavforHue function calls -------------------------------------
   // Prepare lights - dimming, turning on, etc.
@@ -131,6 +136,7 @@ extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, con
   // Put this/these light request on the thread's queue.
   wt.transferQueueToMain();
   // -- Threading ---------------------------------------------------
+  XBMC->Log(LOG_DEBUG, "WavforHue finished Start()");
 }
 
 //-- Stop ---------------------------------------------------------------------
@@ -369,6 +375,14 @@ extern "C" void GetInfo(VIS_INFO* pInfo)
   pInfo->iSyncDelay = 0;
 }
 
+//-- GetSubModules ------------------------------------------------------------
+// Return any sub modules supported by this vis
+//-----------------------------------------------------------------------------
+extern "C" unsigned int GetSubModules(char ***names)
+{
+  return 0; // this vis supports 0 sub modules
+}
+
 //-- OnAction -----------------------------------------------------------------
 // Handle XBMC actions such as next preset, lock preset, album art changed etc
 //-----------------------------------------------------------------------------
@@ -399,15 +413,7 @@ extern "C" unsigned GetPreset()
 //-----------------------------------------------------------------------------
 extern "C" bool IsLocked()
 {
-  return false;
-}
-
-//-- GetSubModules ------------------------------------------------------------
-// Return any sub modules supported by this vis
-//-----------------------------------------------------------------------------
-extern "C" unsigned int GetSubModules(char ***names)
-{
-  return 0; // this vis supports 0 sub modules
+  return true;
 }
 
 //-- HasSettings --------------------------------------------------------------
@@ -416,7 +422,7 @@ extern "C" unsigned int GetSubModules(char ***names)
 //-----------------------------------------------------------------------------
 extern "C" bool ADDON_HasSettings()
 {
-  return false;
+  return true;
 }
 
 //-- GetStatus ---------------------------------------------------------------
@@ -568,8 +574,20 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
   //----------------------------------------------------------
   else if (strcmp(strSetting, "cuboxHDMIFix") == 0)
     wt.wavforhue.cuboxHDMIFix = *(bool*)value == 1;
+  else if (strcmp(strSetting, "config") == 0)
+    // do nothing
+    bool do_nothing = true;
+  else if (strcmp(strSetting, "debug") == 0)
+    // not implemented yet
+    bool do_nothing = true;
   else
+  {
+    char* array;
+    array = (char*)strSetting;
+    std::string badSetting = "Got unknown setting " + std::string(array);
+    XBMC->Log(LOG_DEBUG, badSetting.c_str());
     return ADDON_STATUS_UNKNOWN;
+  }
 
   return ADDON_STATUS_OK;
 }

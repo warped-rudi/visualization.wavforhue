@@ -41,6 +41,7 @@ WavforHue::WavforHue()
   afterHueData.bri = 25; 
   afterHueData.sat = 255; 
   afterHueData.hue = 65280;
+  priorState = false;
   // -- Hue Information ----------------------------------------------------
 
   // -- Colors -------------------------------------------------------------
@@ -106,7 +107,7 @@ void WavforHue::hsvToRgb(float h, float s, float v, float _rgb[]) {
 /*
 void WavforHue::RegisterHue()
 {
-  PutData _putData;
+  SocketData _putData;
   _putData.url = "http://" + strHueBridgeIPAddress + "/api";
   _putData.json = "{\"devicetype\":\"Kodi\",\"username\":\"KodiVisWave\"}";
   queue.push(_putData);
@@ -121,7 +122,7 @@ void WavforHue::GetPriorStates()
 void WavforHue::huePutRequest(HueData hueData)
 {
   std::string strJson, strURLLight;
-  PutData _putData;
+  SocketData _putData;
 
   if (hueData.on) //turn lights on
     strJson = "{\"on\":true}";
@@ -145,11 +146,9 @@ void WavforHue::huePutRequest(HueData hueData)
 
   for (int i = 0; i < hueData.numberOfLights; i++)
   {
-    strURLLight = "http://" + strHueBridgeIPAddress +
-      "/api/" + strHueBridgeUser + "/lights/" + hueData.lightIDs[i] + "/state";
-
-    //put this light request on the stack
-    _putData.url = strURLLight;
+    _putData.host = strHueBridgeIPAddress;
+    _putData.path = "/api/" + strHueBridgeUser + "/lights/" + hueData.lightIDs[i] + "/state";
+    _putData.method = "PUT";
     _putData.json = strJson;
     //if (queue.size() < 10)
     //{

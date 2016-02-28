@@ -7,6 +7,7 @@ list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})
 
 find_package(kodi REQUIRED)
 find_package(platform REQUIRED)
+#find_package(p8-platform REQUIRED)
 find_package(kodiplatform REQUIRED)
 find_package(CURL REQUIRED)
 #find_package(yajl REQUIRED)
@@ -90,7 +91,8 @@ include_directories(${INCLUDES}
                     ${KODI_INCLUDE_DIR}
                     ${platform_INCLUDE_DIRS}
                     ${kodiplatform_INCLUDE_DIRS})
-#                    ${YAJL_INCLUDE_DIR}               
+#                    ${YAJL_INCLUDE_DIR}    
+#                    ${p8-platform_INCLUDE_DIRS}           
 
 
 build_addon(visualization.wavforhue WAVFORHUE DEPLIBS)

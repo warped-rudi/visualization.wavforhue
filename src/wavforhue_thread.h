@@ -22,10 +22,17 @@
 #ifndef WAVFORHUE_THREAD
 #define WAVEFORHUE_THREAD
 
-// -- cURL -- I hate cURL ------------------------------------------
+// -- cURL works in *nix, but is crap in Windows -------------------
+#ifndef _WIN32
 #include <curl/curl.h>
-//#include "../../xbmc/xbmc/filesystem/DllLibCurl.h"
-// -- cURL -- I hate cURL ------------------------------------------
+#else
+// -- cURL works in *nix, but is crap in Windows -------------------
+#include <winsock2.h>
+#include <windows.h>
+#include <iostream>
+#pragma comment(lib,"ws2_32.lib")
+#endif
+// -- cURL works in *nix, but is crap in Windows -------------------
 
 // -- Threading ----------------------------------------------------
 #include <thread>
@@ -35,9 +42,11 @@
 #include <queue>
 // -- Threading ----------------------------------------------------
 
-// Included last to prevent including winsock.h on Windows.
-// This happens when windows.h is included before curl.h.
-// Did I mention I don't like curl?
+// -- Logging ------------------------------------------------------
+#include <libXBMC_addon.h>
+// -- Logging ------------------------------------------------------
+
+
 #ifndef WAVFORHUE
 #include "WavforHue.h"
 #endif
@@ -51,14 +60,18 @@ public:
   std::condition_variable gThreadConditionVariable;
   std::atomic<bool> gRunThread;
   bool gReady;
-  std::queue<PutData> gQueue;
+  std::queue<SocketData> gQueue;
   WavforHue wavforhue;
   WavforHue_Thread();
   ~WavforHue_Thread();
 
+  // -- Logging ------------------------------------------------------
+  ADDON::CHelper_libXBMC_addon *XBMC;
+  // -- Logging ------------------------------------------------------
+
   size_t noop_cb(void *ptr, size_t size, size_t nmemb, void *data);
   void workerThread();
-  void curlCall(PutData putData);
+  void curlCall(SocketData putData);
   void transferQueueToThread();
   void transferQueueToMain();
 };
