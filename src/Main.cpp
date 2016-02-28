@@ -129,11 +129,6 @@ extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, con
   if (!wt.wavforhue.savedTheStates)
     wt.GetPriorState();
   wt.wavforhue.Start();
-  if(wt.wavforhue.cuboxHDMIFix)
-  {
-    wt.wavforhue.iMaxAudioData_i = 180;
-    wt.wavforhue.fMaxAudioData = 179.0f;
-  }
   // -- WavforHue function calls -------------------------------------
 
   // -- Threading ---------------------------------------------------
@@ -150,9 +145,9 @@ extern "C" void ADDON_Stop()
 {
   // -- WavforHue function calls -------------------------------------
   // Change the lights to something acceptable.
-  //if (wt.wavforhue.priorState)
-  //  wt.PutPriorState();
-  //else
+  if (wt.wavforhue.priorState)
+    wt.PutPriorState();
+  else
     wt.wavforhue.Stop();
   // -- WavforHue function calls -------------------------------------
  
@@ -177,6 +172,7 @@ extern "C" void ADDON_Destroy()
 {
   if (XBMC)
     SAFE_DELETE(XBMC);
+
   // -- Waveform -----------------------------------------------------
   /*
 #ifndef HAS_OPENGL

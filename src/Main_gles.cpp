@@ -36,6 +36,16 @@
 #include "Main_gles.h"
 #endif
 
+#ifndef WAVFORHUE_THREAD
+#include "WavforHue_Thread.h"
+#endif
+
+#ifndef WAVFORHUE
+#include "WavforHue.h"
+#endif
+
+using namespace ADDON;
+
 WavforHue_Thread wt;
 
 //-- Create -------------------------------------------------------------------
@@ -45,6 +55,12 @@ extern "C" ADDON_STATUS ADDON_Create(void* hdl, void* props)
 {
   if (!props)
     return ADDON_STATUS_UNKNOWN;
+  
+  XBMC = new CHelper_libXBMC_addon;
+  if (!XBMC->RegisterMe(hdl)) {
+    SAFE_DELETE(XBMC);
+    return ADDON_STATUS_PERMANENT_FAILURE;
+  }
 
   // -- Waveform -----------------------------------------------------
   vis_shader = new CVisGUIShader(vert, frag);
@@ -89,12 +105,9 @@ extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, con
 {
   // -- Wavforhue function calls -------------------------------------
   // Prepare lights - dimming, turning on, etc.
+  if (!wt.wavforhue.savedTheStates)
+    wt.GetPriorState();
   wt.wavforhue.Start();
-  if(wt.wavforhue.cuboxHDMIFix)
-  {
-    wt.wavforhue.iMaxAudioData_i = 180;
-    wt.wavforhue.fMaxAudioData = 179.0f;
-  }
   // -- Wavforhue function calls -------------------------------------
 
   // -- Threading ---------------------------------------------------
@@ -111,7 +124,10 @@ extern "C" void ADDON_Stop()
 {
   // -- Wavforhue function calls -------------------------------------
   // Change the lights to something acceptable.
-  wt.wavforhue.Stop();
+  if (wt.wavforhue.priorState)
+    wt.PutPriorState();
+  else
+    wt.wavforhue.Stop();
   // -- Wavforhue function calls -------------------------------------
 
   // -- Threading ---------------------------------------------------
@@ -134,6 +150,9 @@ extern "C" void ADDON_Stop()
 //-----------------------------------------------------------------------------
 extern "C" void ADDON_Destroy()
 {
+  if (XBMC)
+    SAFE_DELETE(XBMC);
+  
   /*
   // -- Wavforhue function calls -------------------------------------
   // Change the lights to something acceptable.
@@ -400,9 +419,9 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
   if (!strSetting || !value)
     return ADDON_STATUS_UNKNOWN;
 
-  if (strcmp(strSetting, "UseWaveForm") == 0)
+  if (strcmp(strSetting, "useWaveForm") == 0)
     wt.wavforhue.useWaveForm = *(bool*)value == 1;
-  else if (strcmp(strSetting, "HueBridgeIP") == 0)
+  else if (strcmp(strSetting, "hueBridgeIP") == 0)
   {
     char* array;
     array = (char*)value;
@@ -414,10 +433,10 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
     array = (char*)value;
     wt.wavforhue.strHueBridgeUser = std::string(array);
   }
-  //----------------------------------------------------------  
+  //---------------------------------------------------------- 
   else if (strcmp(strSetting, "priorState") == 0)
     wt.wavforhue.priorState = *(bool*)value == 1;
-  else if (strcmp(strSetting, "ActiveLights") == 0)
+  else if (strcmp(strSetting, "activeLights") == 0)
   {
     char* array;
     array = (char*)value;
@@ -435,19 +454,19 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
     wt.wavforhue.activeHueData.lightIDs.push_back(activeLightIDsUnsplit.substr(last));
     wt.wavforhue.activeHueData.numberOfLights = wt.wavforhue.activeHueData.lightIDs.size();
   }
-  else if (strcmp(strSetting, "BeatThreshold") == 0)
+  else if (strcmp(strSetting, "beatThreshold") == 0)
     wt.wavforhue.beatThreshold = *(float*)value;
-  else if (strcmp(strSetting, "MaxBri") == 0)
+  else if (strcmp(strSetting, "maxBri") == 0)
     wt.wavforhue.maxBri = *(int*)value;
-  else if (strcmp(strSetting, "HueRangeUpper") == 0)
+  else if (strcmp(strSetting, "hueRangeUpper") == 0)
   {
     wt.wavforhue.lastHue = *(int*)value;
     wt.wavforhue.initialHue = wt.wavforhue.lastHue;
   }
-  else if (strcmp(strSetting, "HueRangeLower") == 0)
+  else if (strcmp(strSetting, "hueRangeLower") == 0)
     wt.wavforhue.targetHue = *(int*)value;
   //----------------------------------------------------------
-  else if (strcmp(strSetting, "DimmedLights") == 0)
+  else if (strcmp(strSetting, "dimmedLights") == 0)
   {
     char* array;
     array = (char*)value;
@@ -472,14 +491,14 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
       wt.wavforhue.dimmedHueData.numberOfLights = wt.wavforhue.dimmedHueData.lightIDs.size();
     }
   }
-  else if (strcmp(strSetting, "DimmedBri") == 0)
+  else if (strcmp(strSetting, "dimmedBri") == 0)
     wt.wavforhue.dimmedHueData.bri = *(int*)value;
-  else if (strcmp(strSetting, "DimmedSat") == 0)
+  else if (strcmp(strSetting, "dimmedSat") == 0)
     wt.wavforhue.dimmedHueData.sat = *(int*)value;
-  else if (strcmp(strSetting, "DimmedHue") == 0)
+  else if (strcmp(strSetting, "dimmedHue") == 0)
     wt.wavforhue.dimmedHueData.hue = *(int*)value;
   //----------------------------------------------------------
-  else if (strcmp(strSetting, "AfterLights") == 0)
+  else if (strcmp(strSetting, "afterLights") == 0)
   {
     char* array;
     array = (char*)value;
@@ -504,17 +523,31 @@ extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* val
       wt.wavforhue.afterHueData.numberOfLights = wt.wavforhue.afterHueData.lightIDs.size();
     }
   }
-  else if (strcmp(strSetting, "AfterBri") == 0)
+  else if (strcmp(strSetting, "afterBri") == 0)
     wt.wavforhue.afterHueData.bri = *(int*)value;
-  else if (strcmp(strSetting, "AfterSat") == 0)
+  else if (strcmp(strSetting, "afterSat") == 0)
     wt.wavforhue.afterHueData.sat = *(int*)value;
-  else if (strcmp(strSetting, "AfterHue") == 0)
+  else if (strcmp(strSetting, "afterHue") == 0)
     wt.wavforhue.afterHueData.hue = *(int*)value;
   //----------------------------------------------------------
-  else if (strcmp(strSetting, "CuboxHDMIFix") == 0)
+  else if (strcmp(strSetting, "cuboxHDMIFix") == 0)
     wt.wavforhue.cuboxHDMIFix = *(bool*)value == 1;
-  else
+  else if (strcmp(strSetting, "config") == 0)
+    // do nothing
+    ((void)0);
+  else if (strcmp(strSetting, "debug") == 0)
+    wt.wavforhue.debug = *(bool*)value == 1;
+  else if (strcmp(strSetting, "###GetSavedSettings") == 0)
+    // wtf
     return ADDON_STATUS_UNKNOWN;
+  else
+  {
+    char* array;
+    array = (char*)strSetting;
+    std::string badSetting = "Got unknown setting " + std::string(array);
+    XBMC->Log(LOG_DEBUG, badSetting.c_str());
+    return ADDON_STATUS_UNKNOWN;
+  }
 
   return ADDON_STATUS_OK;
 }

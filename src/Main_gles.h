@@ -35,16 +35,14 @@
 #ifndef WAVFORHUE_GLES_MAIN
 #define WAVFORHUE_GLES_MAIN
 
-#include <xbmc_vis_dll.h>
+// -- Kodi stuff----------------------------------------------------
+#include <xbmc_vis_dll.h> 
+#ifndef WAVFORHUE_KODI
+#include "WavforHue_Kodi.h"
+#endif
+// -- Kodi stuff----------------------------------------------------
+
 #include <cstring>
-
-#ifndef WAVFORHUE
-#include "WavforHue.h"
-#endif
-
-#ifndef WAVFORHUE_THREAD
-#include "WavforHue_Thread.h"
-#endif
 
 // -- Waveform -----------------------------------------------------
 #if defined(__APPLE__)

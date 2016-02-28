@@ -377,6 +377,11 @@ void WavforHue::Start()
     dimmedHueData.transitionTime = 30;
     UpdateLights(dimmedHueData);
   }
+  if (cuboxHDMIFix)
+  {
+    iMaxAudioData_i = 180;
+    fMaxAudioData = 179.0f;
+  }
 }
 
 void WavforHue::Stop()
