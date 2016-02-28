@@ -5,3 +5,4 @@ cleanCMake.sh
 reset.sh
 Findyajl.cmake
 *.pyo
+*.inc
