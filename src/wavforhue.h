@@ -50,7 +50,7 @@ struct SocketData
 {
   std::string protocol = "http";
   std::string host;
-  int port = 80;
+  std::string port = "80";
   std::string path;
   std::string method;
   std::string json;

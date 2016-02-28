@@ -153,15 +153,8 @@ extern "C" void ADDON_Stop()
   // -- Threading ---------------------------------------------------
   // Put this/these light request on the thread's queue.
   wt.transferQueueToMain();
-  // -- Threading ---------------------------------------------------
-
-  // -- Threading ---------------------------------------------------
-  // Need to let the gQueue empty...
-  wt.gRunThread = false;
-  while (wt.gWorkerThread.joinable())  // Kill 'em all \m/
-  {
-    wt.gWorkerThread.join();
-  }
+  // Clean up the thread. This causes some delay in Kodi.
+  wt.stop();
   // -- Threading ---------------------------------------------------
 }
 

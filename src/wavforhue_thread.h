@@ -27,12 +27,18 @@
 #include <curl/curl.h>
 #else
 // -- cURL works in *nix, but is crap in Windows -------------------
-#include <winsock2.h>
+#define _WIN32_WINNT 0x0501
+#include <Winsock2.h>
 #include <windows.h>
+#include <ws2tcpip.h>
 #include <iostream>
-#pragma comment(lib,"ws2_32.lib")
+#pragma comment (lib, "Ws2_32.lib")
 #endif
 // -- cURL works in *nix, but is crap in Windows -------------------
+
+// -- trim ---------------------------------------------------------
+#include <cctype>
+// -- trim ---------------------------------------------------------
 
 // -- Threading ----------------------------------------------------
 #include <thread>
@@ -55,12 +61,6 @@
 class WavforHue_Thread
 {
 public:
-  std::thread gWorkerThread;
-  std::mutex gMutex;
-  std::condition_variable gThreadConditionVariable;
-  std::atomic<bool> gRunThread;
-  bool gReady;
-  std::queue<SocketData> gQueue;
   WavforHue wavforhue;
   WavforHue_Thread();
   ~WavforHue_Thread();
@@ -69,11 +69,22 @@ public:
   ADDON::CHelper_libXBMC_addon *XBMC;
   // -- Logging ------------------------------------------------------
 
-  size_t noop_cb(void *ptr, size_t size, size_t nmemb, void *data);
-  void workerThread();
-  void curlCall(SocketData putData);
   void transferQueueToThread();
   void transferQueueToMain();
+  void stop();
+
+private:
+  std::string response;
+  std::thread gWorkerThread;
+  std::mutex gMutex;
+  std::condition_variable gThreadConditionVariable;
+  std::atomic<bool> gRunThread;
+  bool gReady;
+  std::queue<SocketData> gQueue;
+
+  static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
+  void workerThread();
+  void httpRequest(SocketData putData);
 };
 
 
