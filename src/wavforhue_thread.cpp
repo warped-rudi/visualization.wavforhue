@@ -166,8 +166,8 @@ void WavforHue_Thread::HTTPRequest(SocketData socketData)
   // Initialize Winsock
   iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
   if (iResult != 0) {
-    error = "WSAStartup failed with error: " + iResult;
-    wavforhue.XBMC->Log(LOG_DEBUG, error.c_str());
+    wavforhue.SendDebug("WSAStartup failed with error: " + iResult);
+    //wavforhue.wavforhueXBMC->Log(LOG_DEBUG, wavforhue.strDebug.c_str());
     WSACleanup();
     abort();
   }
@@ -180,8 +180,8 @@ void WavforHue_Thread::HTTPRequest(SocketData socketData)
   // Resolve the server address and port
   iResult = getaddrinfo(socketData.host.c_str(), socketData.port.c_str(), &hints, &result);
   if (iResult != 0) {
-    error = "getaddrinfo failed with error: " + iResult;
-    wavforhue.XBMC->Log(LOG_DEBUG, error.c_str());
+    wavforhue.SendDebug("getaddrinfo failed with error: " + iResult);
+    //wavforhue.wavforhueXBMC->Log(LOG_DEBUG, wavforhue.strDebug.c_str());
     WSACleanup();
     abort();
   }
@@ -193,8 +193,8 @@ void WavforHue_Thread::HTTPRequest(SocketData socketData)
     ConnectSocket = socket(ptr->ai_family, ptr->ai_socktype,
       ptr->ai_protocol);
     if (ConnectSocket == INVALID_SOCKET) {
-      error = "socket failed with error: " + WSAGetLastError();
-      wavforhue.XBMC->Log(LOG_DEBUG, error.c_str());
+      wavforhue.SendDebug("socket failed with error : " + WSAGetLastError());
+      //wavforhue.wavforhueXBMC->Log(LOG_DEBUG, wavforhue.strDebug.c_str());
       WSACleanup();
       abort();
     }
@@ -212,8 +212,8 @@ void WavforHue_Thread::HTTPRequest(SocketData socketData)
   freeaddrinfo(result);
 
   if (ConnectSocket == INVALID_SOCKET) {
-    error = "Unable to connect to server!";
-    wavforhue.XBMC->Log(LOG_DEBUG, error.c_str());
+    wavforhue.SendDebug("Unable to connect to server!");
+    //wavforhue.wavforhueXBMC->Log(LOG_DEBUG, wavforhue.strDebug.c_str());
     WSACleanup();
     abort();
   }
@@ -238,21 +238,24 @@ void WavforHue_Thread::HTTPRequest(SocketData socketData)
 
   iResult = send(ConnectSocket, request.c_str(), request.length(), 0);
   if (iResult == SOCKET_ERROR) {
-    error = "send failed with error: " + WSAGetLastError();
-    wavforhue.XBMC->Log(LOG_DEBUG, error.c_str());
+    wavforhue.SendDebug("send failed with error: " + WSAGetLastError());
+    //wavforhue.wavforhueXBMC->Log(LOG_DEBUG, wavforhue.strDebug.c_str());
     closesocket(ConnectSocket);
     WSACleanup();
     abort();
   }
 
   if (wavforhue.debug)
-    wavforhue.XBMC->Log(LOG_DEBUG, "Connected.");
+  {
+    wavforhue.SendDebug("Connected");
+    //wavforhue.wavforhueXBMC->Log(LOG_DEBUG, wavforhue.strDebug.c_str());
+  }
 
   // shutdown the connection since no more data will be sent
   iResult = shutdown(ConnectSocket, SD_SEND);
   if (iResult == SOCKET_ERROR) {
-    error = "shutdown failed with error: " + WSAGetLastError();
-    wavforhue.XBMC->Log(LOG_DEBUG, error.c_str());
+    wavforhue.SendDebug("shutdown failed with error: " + WSAGetLastError());
+    //wavforhue.wavforhueXBMC->Log(LOG_DEBUG, wavforhue.strDebug.c_str());
     closesocket(ConnectSocket);
     WSACleanup();
     abort();
@@ -267,12 +270,15 @@ void WavforHue_Thread::HTTPRequest(SocketData socketData)
     else if (iResult == 0)
     {
       if (wavforhue.debug)
-        wavforhue.XBMC->Log(LOG_DEBUG, "Connection closed.");
+      {
+        wavforhue.SendDebug("Connection closed.");
+        ////wavforhue.wavforhueXBMC->Log(LOG_DEBUG, wavforhue.strDebug.c_str());
+      }
     }
     else
     {
-      error = "recv failed with error: " + WSAGetLastError();
-      wavforhue.XBMC->Log(LOG_DEBUG, error.c_str());
+      wavforhue.SendDebug("recv failed with error: " + WSAGetLastError());
+      ////wavforhue.wavforhueXBMC->Log(LOG_DEBUG, wavforhue.strDebug.c_str());
     }
   } while (iResult > 0);
 
@@ -284,8 +290,8 @@ void WavforHue_Thread::HTTPRequest(SocketData socketData)
   response = response.substr(response.find("\r\n\r\n"));
   if (wavforhue.debug)
   {
-    std::string debugResponse = "Hue response: " + response;
-    wavforhue.XBMC->Log(LOG_DEBUG, debugResponse.c_str());
+    wavforhue.SendDebug("Hue response: " + response);
+    //wavforhue.wavforhueXBMC->Log(LOG_DEBUG, wavforhue.strDebug.c_str());
   }
     
 }

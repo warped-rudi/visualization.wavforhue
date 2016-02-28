@@ -17,10 +17,12 @@ set(WAVFORHUE_SOURCES src/Main.cpp
                       src/WavforHue.cpp
                       src/WavforHue_Thread.cpp
                       src/jsoncpp.cpp
+                      src/WavforHue_Kodi.cpp
                       src/Main.h
                       src/FFT.h
                       src/WavforHue.h
-                      src/WavforHue_Thread.h)
+                      src/WavforHue_Thread.h
+                      src/WavforHue_Kodi.h)
 
 if(WIN32)
   set(SHADER_FILES src/DefaultVertexShader.hlsl
@@ -67,13 +69,15 @@ else()
                             src/VisMatrixGLES.cpp
                             src/VisShader.cpp
                             src/jsoncpp.cpp
+                            src/WavforHue_Kodi.cpp
                             src/Main_gles.h
                             src/FFT.h
                             src/WavforHue.h
                             src/WavforHue_Thread.h
                             src/VisGUIShader.h
                             src/VisMatrixGLES.h
-                            src/VisShader.h)
+                            src/VisShader.h
+                            src/WavforHue_Kodi.h)
       set(DEPLIBS ${OPENGLES2_LIBRARIES})
     else()
       message(FATAL_ERROR "No rendering API found. Bailing")
@@ -94,6 +98,7 @@ include_directories(${INCLUDES}
                     ${kodiplatform_INCLUDE_DIRS})
 #                    ${YAJL_INCLUDE_DIR}
 #                    ${p8-platform_INCLUDE_DIRS}           
+
 
 
 build_addon(visualization.wavforhue WAVFORHUE DEPLIBS)

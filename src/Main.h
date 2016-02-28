@@ -32,11 +32,16 @@
 #ifndef WAVFORHUE_MAIN
 #define WAVFORHUE_MAIN
 
+// -- Kodi stuff----------------------------------------------------
+#include <xbmc_vis_dll.h> 
+#ifndef WAVFORHUE_KODI
+#include "WavforHue_Kodi.h"
+#endif
+// -- Kodi stuff----------------------------------------------------
+
 #include <cstring>
 
-#ifndef WAVFORHUE_THREAD
-#include "WavforHue_Thread.h"
-#endif
+
 
 // -- Waveform -----------------------------------------------------
 #ifdef HAS_OPENGL
@@ -60,17 +65,7 @@
 #endif
 // -- Waveform -----------------------------------------------------
 
-// Included last to prevent including winsock.h on Windows.
-// This happens when windows.h is included before curl.h.
-// Did I mention I don't like curl?
-#ifndef WAVFORHUE
-#include "WavforHue.h"
-#endif
-#include <libKODI_guilib.h>
-#include <xbmc_vis_dll.h> 
-#include <libXBMC_addon.h>
-#include "platform/util/util.h"
-extern ADDON::CHelper_libXBMC_addon *XBMC;
+
 
 // -- Waveform -----------------------------------------------------
 char g_visName[512];

@@ -32,6 +32,14 @@
 #include "Main.h"
 #endif
 
+#ifndef WAVFORHUE_THREAD
+#include "WavforHue_Thread.h"
+#endif
+
+#ifndef WAVFORHUE
+#include "WavforHue.h"
+#endif
+
 using namespace ADDON;
 
 WavforHue_Thread wt;
@@ -44,12 +52,11 @@ extern "C" ADDON_STATUS ADDON_Create(void* hdl, void* props)
   if (!props)
     return ADDON_STATUS_UNKNOWN;
 
-  
-  if (!wt.wavforhue.XBMC->RegisterMe(hdl)) {
-    SAFE_DELETE(wt.wavforhue.XBMC);
+  XBMC = new CHelper_libXBMC_addon;
+  if (!XBMC->RegisterMe(hdl)) {
+    SAFE_DELETE(XBMC);
     return ADDON_STATUS_PERMANENT_FAILURE;
   }
-
 
   // -- Waveform -----------------------------------------------------
   VIS_PROPS* visProps = (VIS_PROPS*)props;
@@ -143,9 +150,9 @@ extern "C" void ADDON_Stop()
 {
   // -- WavforHue function calls -------------------------------------
   // Change the lights to something acceptable.
-  if (wt.wavforhue.priorState)
-    wt.PutPriorState();
-  else
+  //if (wt.wavforhue.priorState)
+  //  wt.PutPriorState();
+  //else
     wt.wavforhue.Stop();
   // -- WavforHue function calls -------------------------------------
  
@@ -168,6 +175,8 @@ extern "C" void ADDON_Stop()
 //-----------------------------------------------------------------------------
 extern "C" void ADDON_Destroy()
 {
+  if (XBMC)
+    SAFE_DELETE(XBMC);
   // -- Waveform -----------------------------------------------------
   /*
 #ifndef HAS_OPENGL

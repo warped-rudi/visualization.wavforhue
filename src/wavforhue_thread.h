@@ -34,6 +34,20 @@
 #include <iostream>
 #pragma comment (lib, "Ws2_32.lib")
 #endif
+/*
+KS-  <afedchin>: hardyt_ why u want to use cURL you can just use  CHelper_libXBMC_addon *XBMC = new CHelper_libXBMC_addon; XBMC->OpenFile(url, flags)
+7:20:23 AM	KS-  <paxxi>: hardyt_ sorry for the delay in response, using the method suggested by afedchin and then calling GetImplementation() on the returned file object should give you a curlfile object that you can test with  ``` auto f = dynamic_castXFILE::CCurlFile>(file-GetImplementation()); if (f) { do stuff here } ``` that gives you plenty of methods specific for curl and better control over headers and such. Not sure if it's a good way to handle it as it takes
+7:20:24 AM	KS-  on kodi internals rather than the provided interface
+7:21:10 AM	KS-  <paxxi>: trying to link against the provided libcurl might be tricky as it requires some tricks with delay loading to find it at runtime and that's not exposed to addons
+7:22:33 AM	KS-  <afedchin>: Paxxi, is CCurlFile part of platform?
+7:22:54 AM	KS-  <paxxi>: I don't think so, it's an ugly hack
+7:23:11 AM	KS-  <paxxi>: it should probably be since it's common for addons to want http functionality
+7:48:30 AM	davilla_  there’s a PR that add it to binary addon API
+7:50:28 AM	davilla_  https://github.com/xbmc/xbmc/pull/9173
+7:50:29 AM	davilla_  see
+7:50:34 AM	davilla_  https://github.com/FernetMenta/xbmc/commit/e012beb27eadc9bfa434a151cb44a44ecbc54d9c
+
+*/
 // -- cURL works in *nix, but is crap in Windows -------------------
 
 
@@ -45,6 +59,11 @@
 #include <queue>
 // -- Threading ----------------------------------------------------
 
+// -- Kodi stuff----------------------------------------------------
+#ifndef WAVFORHUE_KODI
+#include "WavforHue_Kodi.h"
+#endif
+// -- Kodi stuff----------------------------------------------------
 
 #ifndef WAVFORHUE
 #include "WavforHue.h"

@@ -23,9 +23,13 @@
 #include "WavforHue.h"
 #endif
 
-using namespace ADDON;
-CHelper_libXBMC_addon *XBMC = NULL;
+// -- Kodi stuff----------------------------------------------------
+#ifndef WAVFORHUE_KODI
+#include "WavforHue_Kodi.h"
+#endif
+// -- Kodi stuff----------------------------------------------------
 
+using namespace ADDON;
 
 // -- trim ---------------------------------------------------------
 // trim from start
@@ -96,7 +100,6 @@ WavforHue::WavforHue()
   // -- Sound Analyzer -----------------------------------------------------
 
   // -- Debug --------------------------------------------------------------
-  XBMC = new CHelper_libXBMC_addon;
   debug = false;
   // -- Debug --------------------------------------------------------------
 }
@@ -155,10 +158,9 @@ void WavforHue::SaveState(std::string json)
 
   if (!parsedSuccess)
   {
-    // Report failures and their locations 
-    // in the document.
-    error = "Failed to parse JSON " + reader.getFormattedErrorMessages();
-    XBMC->Log(LOG_DEBUG, error.c_str());
+    // Report failures and their locations in the document.
+    // Oh I wish I could use debugging in here.
+    SendDebug("Failed to parse JSON " + reader.getFormattedErrorMessages());
     abort();
   }
 
@@ -187,8 +189,7 @@ void WavforHue::SaveState(std::string json)
       }
       
       priorStates.push_back(hueData);
-      error = "Saving hue data for light " + itr.key().asString();
-      XBMC->Log(LOG_DEBUG, error.c_str());
+      SendDebug("Saving hue data for light " + itr.key().asString());
     }
   }
   savedTheStates = true;
@@ -196,13 +197,11 @@ void WavforHue::SaveState(std::string json)
 
 void WavforHue::RestoreState()
 {
-  // This causes an Access Violation?
   // Put all the prior states on the queue.
   for (auto &i : priorStates)
   {
     huePutRequest(i);
-    //error = "Restoring hue data for light " + i.lightIDs[0];
-    //XBMC->Log(LOG_DEBUG, error.c_str()); 
+    SendDebug("Restoring hue data for light " + i.lightIDs[0]);
   }
 }
 
@@ -643,3 +642,13 @@ void WavforHue::UpdateTime()
   }
 }
 // -- Time Analyzer ------------------------------------------------------
+
+// -- Debug --------------------------------------------------------------
+void WavforHue::SendDebug(std::string mStrDebug)
+{
+  // Debugging in here crashes at Kodi quit.
+  //wavforhueXBMC->Log(LOG_DEBUG, mStrDebug.c_str());
+  if (XBMC)
+    XBMC->Log(LOG_DEBUG, mStrDebug.c_str());
+  //((void)0);
+}
