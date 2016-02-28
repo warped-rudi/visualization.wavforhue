@@ -1,0 +1,13 @@
+I am declaring a public API! http://semver.org/#spec-item-1
+
+Really, there is no API for this application, but I'll try to use semantic versioning. If you would like to use this software for other visualizations, it should not be difficult. You would follow this process:
+1. Copy WavforHue.h, WavforHue.cpp, WavforHue_Threading.h, WavforHue_Threading.cpp into your src directory.
+2. Look in Main.h as an example.
+2a. Use the #include "WavforHue_Thread.h"
+3. Look in Main.cpp as an example.
+3a. Use the class instantiation WavforHue_Thread wt;
+3b. Update your ADDON_STATUS ADDON_Create, Start, ADDON_Stop, ADDON_Destroy, AudioData, Render, and ADDON_STATUS ADDON_SetSetting functions. It should be clear which code you copy. 
+4. If you don't have any settings in your visualization, copy the entire resources directory. Otherwise, you'll have to update your settings to include the additional WavforHue settings.
+5. Ensure you copy all the .py scripts. The help make the settings more user friendly.
+6. Ensure every instance of WavforHue in any kind of addon name field is changed to your addon.
+7. Ensure every instance of visualization.wavforhue in any kind of addon id field is changed to your addon.
