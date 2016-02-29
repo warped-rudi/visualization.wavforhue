@@ -8,7 +8,8 @@ import colorsys
 import os
 import datetime
 import math
-import collections
+#import collections # Android Kodi uses 2.6, so I am including
+# the library directly with from ordereddict import * below.
 from threading import Timer
 
 __addon__      = xbmcaddon.Addon('visualization.wavforhue')
@@ -21,6 +22,7 @@ sys.path.append (__resource__)
 
 from settings import *
 from tools import *
+from ordereddict import *
 
 try:
   import requests
@@ -233,7 +235,9 @@ class Hue:
 
     #no error, keep going
     # Sort the lights.
-    od = collections.OrderedDict(sorted(j.items(), key=lambda x:int(x[0])))
+    # collections is not available in 2.6, which messes up Android
+    #od = collections.OrderedDict(sorted(j.items(), key=lambda x:int(x[0])))
+    od = OrderedDict(sorted(j.items(), key=lambda x:int(x[0])))
     # Loop through all the lights.
     i = 0
     self.light = [None] * len(j);
