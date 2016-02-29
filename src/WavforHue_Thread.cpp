@@ -117,8 +117,9 @@ void WavforHue_Thread::TransferQueueToThread()
   }
   gThreadConditionVariable.notify_one();
 }
-
 //-- Threading -----------------------------------------------------
+
+
 
 // -- HTTP functions -----------------------------------------------
 // This helps cURL store the HTTP response in a string
@@ -131,17 +132,17 @@ size_t WavforHue_Thread::WriteCallback(void *contents, size_t size, size_t nmemb
 void WavforHue_Thread::HTTPRequest(SocketData socketData)
 {
 #ifndef _WIN32
+  XBMC->Log(LOG_DEBUG, "Initializing cURL.");
   CURL *curl;
   CURLcode res;
   std::string url = "http://" + socketData.host + socketData.path;
+  XBMC->Log(LOG_DEBUG, url.c_str());
+  XBMC->Log(LOG_DEBUG, socketData.json.c_str());
   curl = curl_easy_init();
   // Now specify we want to PUT data, but not using a file, so it has o be a CUSTOMREQUEST
   curl_easy_setopt(curl, CURLOPT_TCP_NODELAY, 1);
   curl_easy_setopt(curl, CURLOPT_TIMEOUT, 3L);
-  if (url.substr(url.length() - 3) == "api")
-    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "POST");
-  else
-    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
+  curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, socketData.method.c_str());
   // This eliminates all kinds of HTTP responses from showing up in stdin.
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &WavforHue_Thread::WriteCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
@@ -152,6 +153,7 @@ void WavforHue_Thread::HTTPRequest(SocketData socketData)
   res = curl_easy_perform(curl);
   // always cleanup curl
   curl_easy_cleanup(curl);
+  XBMC->Log(LOG_DEBUG, "cURL cleaned up.");
 #else
   std::string request, error;
   char buffer[BUFFERSIZE];
@@ -285,30 +287,27 @@ void WavforHue_Thread::HTTPRequest(SocketData socketData)
   // cleanup
   closesocket(ConnectSocket);
   WSACleanup();
-#endif
   // response is holding the json response from the Hue bridge;
   response = response.substr(response.find("\r\n\r\n"));
-  if (wavforhue.debug)
-  {
-    wavforhue.SendDebug("Hue response: " + response);
-    //wavforhue.wavforhueXBMC->Log(LOG_DEBUG, wavforhue.strDebug.c_str());
-  }
-    
+#endif
+  XBMC->Log(LOG_DEBUG, response.c_str());
 }
 
 void WavforHue_Thread::GetPriorState()
 {
   // Get the json data for the current state.
   SocketData getData;
+  XBMC->Log(LOG_DEBUG, "Setting up GET packet.");
   getData.host = wavforhue.strHueBridgeIPAddress;
   getData.method = "GET";
   getData.path = "/api/" + wavforhue.strHueBridgeUser + "/lights";
   getData.json = "";
 
+  XBMC->Log(LOG_DEBUG, "Sending HTTPRequest.");
   HTTPRequest(getData);
 
   // Now response should have the json for all the light states
-
+  XBMC->Log(LOG_DEBUG, "Saving the response.");
   wavforhue.SaveState(response);
 
 }
