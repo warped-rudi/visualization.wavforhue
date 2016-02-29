@@ -142,7 +142,6 @@ public:
 
 
   // -- Functions ----------------------------------------------------------
-  //void RegisterHue(); // Completed with config.py
   void AnalyzeSound();
   void TurnLightsOn(HueData hueData);
   void TurnLightsOff(HueData hueData);

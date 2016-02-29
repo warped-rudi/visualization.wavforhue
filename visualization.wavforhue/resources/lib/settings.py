@@ -6,7 +6,7 @@ __addon__      = sys.modules[ "__main__" ].__addon__
 class settings():
   def __init__( self, *args, **kwargs ):
     self.readxml()
-    self.addon = xbmcaddon.Addon()
+    self.addon = xbmcaddon.Addon('visualization.wavforhue')
 
   def readxml(self):
     self.hueBridgeIP           = __addon__.getSetting("hueBridgeIP")
@@ -17,12 +17,26 @@ class settings():
     self.afterLights           = __addon__.getSetting("afterLights")
     self.priorState            = __addon__.getSetting("priorState") == "false"
 
-    
-    if self.ambilight_min > self.ambilight_max:
-        self.ambilight_min = self.ambilight_max
-        __addon__.setSetting("ambilight_min", __addon__.getSetting("ambilight_max"))
-
     self.debug                 = __addon__.getSetting("debug") == "true"
+    
+    #dummy settings to keep tools.py happy    
+    self.mode                  = 0
+    self.dim_time              = 10
+    self.proportional_dim_time = True
+    self.override_hue          = False
+    self.dimmed_bri            = 5
+    self.dimmed_hue            = 65100
+    self.override_sat          = False
+    self.dimmed_sat            = 254
+    self.undim_sat             = 40
+    self.override_paused       = False
+    self.paused_bri            = 75
+    self.undim_bri             = 100
+    self.undim_hue             = 17500
+    self.override_undim_bri    = False
+    self.force_light_on        = False
+    self.force_light_group_start_override = False
+    self.misc_initialflash     = True
 
   def update(self, **kwargs):
     self.__dict__.update(**kwargs)
@@ -35,5 +49,5 @@ class settings():
     'activeLights: %s\n' % str(self.activeLights) + \
     'dimmedLights: %s\n' % str(self.dimmedLights) + \
     'afterLights: %s\n' % str(self.afterLights) + \
-    'priorState: %s\n' % str
+    'priorState: %s\n' % self.priorState + \
     'debug: %s\n' % self.debug

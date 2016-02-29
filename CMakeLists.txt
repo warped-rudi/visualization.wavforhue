@@ -18,6 +18,7 @@ set(WAVFORHUE_SOURCES src/Main.cpp
                       src/WavforHue_Thread.cpp
                       src/jsoncpp.cpp
                       src/WavforHue_Kodi.cpp
+                      src/WavforHue_Settings.hpp
                       src/Main.h
                       src/FFT.h
                       src/WavforHue.h
@@ -70,6 +71,7 @@ else()
                             src/VisShader.cpp
                             src/jsoncpp.cpp
                             src/WavforHue_Kodi.cpp
+                            src/WavforHue_Settings.hpp
                             src/Main_gles.h
                             src/FFT.h
                             src/WavforHue.h

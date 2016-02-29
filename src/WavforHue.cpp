@@ -137,16 +137,6 @@ void WavforHue::hsvToRgb(float h, float s, float v, float _rgb[]) {
   _rgb[2] = b;
 }
 
-/*
-void WavforHue::RegisterHue()
-{
-  SocketData _putData;
-  _putData.url = "http://" + strHueBridgeIPAddress + "/api";
-  _putData.json = "{\"devicetype\":\"Kodi\",\"username\":\"KodiVisWave\"}";
-  queue.push(_putData);
-}
-*/
-
 void WavforHue::SaveState(std::string json)
 {
   // Let's parse it  

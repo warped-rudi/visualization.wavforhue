@@ -2,6 +2,9 @@ Thanks for all the help to get to this stage. This visualization is a heavily mo
 
 ---
 
+Update 20160228:
+-v1.0.0 Fixes problems with Windows and introduces a user-friendly setup in the addon settings. Other improvements in the code include the inclusion of python scripts for setup and logging in the c++ code.
+
 Update 20160222: 
 -v0.0.3 multithreading is 99% working for OpenELEC 6 (imx6, RPi, RPi2, WeTek Play, x86_64) and Kodi Isengard for Ubuntu x86 and 64, and Android arm. The binaries are at the link below. 
 -I refactored the code. I'm now not totally embarrassed that others see it.
