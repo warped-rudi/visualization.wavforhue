@@ -131,6 +131,7 @@ size_t WavforHue_Thread::WriteCallback(void *contents, size_t size, size_t nmemb
 
 void WavforHue_Thread::HTTPRequest(SocketData socketData)
 {
+  response="";
 #ifndef _WIN32
   XBMC->Log(LOG_DEBUG, "Initializing cURL.");
   CURL *curl;
