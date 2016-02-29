@@ -102,7 +102,7 @@ extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, con
 
   // -- Threading ---------------------------------------------------
   // Put this/these light request on the thread's queue.
-  wt.transferQueueToMain();
+  wt.TransferQueueToMain();
   // -- Threading ---------------------------------------------------
 }
 
@@ -226,7 +226,7 @@ extern "C" void AudioData(const float* pAudioData, int iAudioDataLength, float *
 
   // -- Threading ---------------------------------------------------
   // Put this/these light request on the thread's queue.
-  wt.transferQueueToThread();
+  wt.TransferQueueToThread();
   // -- Threading ---------------------------------------------------
 
 }

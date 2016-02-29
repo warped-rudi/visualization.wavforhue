@@ -99,7 +99,7 @@ include_directories(${INCLUDES}
                     ${p8-platform_INCLUDE_DIRS}
                     ${kodiplatform_INCLUDE_DIRS})
 #                    ${YAJL_INCLUDE_DIR}
-#                    ${p8-platform_INCLUDE_DIRS}           
+#                    ${platform_INCLUDE_DIRS}           
 
 
 

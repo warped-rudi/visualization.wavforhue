@@ -6,3 +6,4 @@ reset.sh
 Findyajl.cmake
 *.pyo
 *.inc
+visualization.wavforhue/addon.xml

@@ -19,12 +19,6 @@
 *
 */
 
-#ifndef WAVFORHUE_MAIN
-#include "Main.h"
-#endif
-
-using namespace ADDON;
-
 extern "C" ADDON_STATUS ADDON_SetSetting(const char *strSetting, const void* value)
 {
   if (!strSetting || !value)
