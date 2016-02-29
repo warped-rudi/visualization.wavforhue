@@ -23,6 +23,6 @@
 // Is this worth it?
 //#include <libKODI_guilib.h>
 #include <libXBMC_addon.h>
-#include "platform/util/util.h"
+#include "p8-platform/util/util.h"
 extern ADDON::CHelper_libXBMC_addon *XBMC;
 #endif

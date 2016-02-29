@@ -6,8 +6,8 @@ cmake_minimum_required(VERSION 2.6)
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})
 
 find_package(kodi REQUIRED)
-find_package(platform REQUIRED)
-#find_package(p8-platform REQUIRED)
+#find_package(platform REQUIRED)
+find_package(p8-platform REQUIRED)
 find_package(kodiplatform REQUIRED)
 find_package(CURL REQUIRED)
 #find_package(yajl REQUIRED) #why is it so damn difficult to include Kodi's libraries???
@@ -94,9 +94,9 @@ if(WIN32)
 endif()
 
 include_directories(${INCLUDES}
-                    ${CURL_INCLUDE_DIR}  
+                    ${CURL_INCLUDE_DIR}
                     ${KODI_INCLUDE_DIR}
-                    ${platform_INCLUDE_DIRS}
+                    ${p8-platform_INCLUDE_DIRS}
                     ${kodiplatform_INCLUDE_DIRS})
 #                    ${YAJL_INCLUDE_DIR}
 #                    ${p8-platform_INCLUDE_DIRS}           

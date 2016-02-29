@@ -113,13 +113,19 @@ extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, con
 {
   // -- WavforHue function calls -------------------------------------
   // Prepare lights - dimming, turning on, etc.
+  XBMC->Log(LOG_DEBUG, "Preparing lights");
   if (!wt.wavforhue.savedTheStates)
+  {
+    XBMC->Log(LOG_DEBUG, "No previous states saved.");
     wt.GetPriorState();
+  }
+  XBMC->Log(LOG_DEBUG, "Applying starting light settings.");
   wt.wavforhue.Start();
   // -- WavforHue function calls -------------------------------------
 
   // -- Threading ---------------------------------------------------
   // Put this/these light request on the thread's queue.
+  XBMC->Log(LOG_DEBUG, "Transfering queue to main.");
   wt.TransferQueueToMain();
   // -- Threading ---------------------------------------------------
 }

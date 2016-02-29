@@ -44,6 +44,7 @@
 // -- json ---------------------------------------------------------
 #include <cctype>
 #include <functional>
+#include <algorithm>
 #include <iostream>
 #include "json/json.h"
 // -- json ---------------------------------------------------------
