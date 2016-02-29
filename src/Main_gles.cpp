@@ -56,11 +56,13 @@ extern "C" ADDON_STATUS ADDON_Create(void* hdl, void* props)
   if (!props)
     return ADDON_STATUS_UNKNOWN;
   
+#ifndef ANDROID  
   XBMC = new CHelper_libXBMC_addon;
   if (!XBMC->RegisterMe(hdl)) {
     SAFE_DELETE(XBMC);
     return ADDON_STATUS_PERMANENT_FAILURE;
   }
+#endif
 
   // -- Waveform -----------------------------------------------------
   vis_shader = new CVisGUIShader(vert, frag);
@@ -151,8 +153,10 @@ extern "C" void ADDON_Stop()
 //-----------------------------------------------------------------------------
 extern "C" void ADDON_Destroy()
 {
+#ifndef ANDROID
   if (XBMC)
     SAFE_DELETE(XBMC);
+#endif
   
   /*
   // -- Wavforhue function calls -------------------------------------

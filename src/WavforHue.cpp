@@ -641,9 +641,10 @@ void WavforHue::UpdateTime()
 // -- Debug --------------------------------------------------------------
 void WavforHue::SendDebug(std::string mStrDebug)
 {
-  // Debugging in here crashes at Kodi quit.
-  //wavforhueXBMC->Log(LOG_DEBUG, mStrDebug.c_str());
+#ifndef ANDROID
   if (XBMC)
     XBMC->Log(LOG_DEBUG, mStrDebug.c_str());
-  //((void)0);
+#else
+  ((void)0);
+#endif
 }
