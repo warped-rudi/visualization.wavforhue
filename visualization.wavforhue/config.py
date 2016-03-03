@@ -1,3 +1,22 @@
+#
+# Copyright (C) 2016 Thomas M. Hardy
+#
+# http://kodi.tv
+#
+# This Program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2, or (at your option)
+# any later version.
+#
+# This Program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with XBMC; see the file COPYING.  If not, see
+# <http://www.gnu.org/licenses/>.
+
 import xbmc
 import xbmcgui
 import xbmcaddon
@@ -27,40 +46,10 @@ from ordereddict import *
 try:
   import requests
 except ImportError:
-  xbmc.log("ERROR: Could not locate required library requests")
-  notify("WavforHue", "ERROR: Could not import Python requests")
+  xbmc.log("ERROR: Could not locate required library Requests.")
+  notify("WavforHue", "ERROR: Could not import Python Requests")
 
-  
-
-
-# class settings():
-  # def __init__( self, *args, **kwargs ):
-    # self.readxml()
-    # self.addon = xbmcaddon.Addon('visualization.wavforhue')
-
-  # def readxml(self):
-    # self.hueBridgeIP             = __addon__.getSetting("HueBridgeIP")
  
-  # def update(self, **kwargs):
-    # self.__dict__.update(**kwargs)
-    # for k, v in kwargs.iteritems():
-      # self.addon.setSetting(k, v)
-
-  # def __repr__(self):
-    # return 'hueBridgeIP: %s\n' % self.hueBridgeIP
- 
-# def notify(title, msg=""):
-  # if not NOSE:
-    # global __icon__
-    # xbmc.executebuiltin("XBMC.Notification(%s, %s, 3, %s)" % (title, msg, __icon__))
- 
-# class MyClass(xbmcgui.Window):
-  # def __init__(self):
-    # self.settings = settings()
-    # notify("Bridge discovery", "starting")
-    # self.settings.update(HueBridgeIP = "192.168.10.7")
-    
-    
 class Hue:
   params = None
   connected = None
@@ -201,7 +190,7 @@ class Hue:
       notify("Failed", "Could not connect to bridge")
       self.connected = False
     else:
-      notify("Kodi Hue", "Connected")
+      notify("WavforHue", "Connected")
       self.connected = True
     return self.connected
     

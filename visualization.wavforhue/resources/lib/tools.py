@@ -1,3 +1,24 @@
+#
+# Copyright (C) 2016 Thomas M. Hardy
+#
+# http://kodi.tv
+#
+# This Program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2, or (at your option)
+# any later version.
+#
+# This Program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with XBMC; see the file COPYING.  If not, see
+# <http://www.gnu.org/licenses/>.
+
+
+
 import time
 import os
 import socket
@@ -29,7 +50,7 @@ def notify(title, msg=""):
 try:
   import requests
 except ImportError:
-  notify("Kodi Hue", "ERROR: Could not import Python requests")
+  notify("WavforHue", "ERROR: Could not import Python requests")
 
 def get_version():
   # prob not the best way...
@@ -278,7 +299,7 @@ class Group(Light):
         (self.hueBridgeIP, self.hueBridgeUser, self.group_id))
       j = r.json()
     except:
-      self.logger.debuglog("WARNING: Request fo bridge failed")
+      self.logger.debuglog("WARNING: Request to bridge failed")
       #notify("Communication Failed", "Error while talking to the bridge")
 
     try:
@@ -413,7 +434,7 @@ class Group(Light):
       self.logger.debuglog("response: %s" % response)
     except Exception as e:
       # probably a timeout
-      self.logger.debuglog("WARNING: Request fo bridge failed")
+      self.logger.debuglog("WARNING: Request to bridge failed")
       pass
 
 ######################
@@ -510,7 +531,7 @@ class ChapterManager:
 ####################
 
 class Logger:
-  scriptname = "Kodi Hue"
+  scriptname = "WavforHue"
   enabled = True
   debug_enabled = False
 
