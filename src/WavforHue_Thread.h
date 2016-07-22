@@ -91,6 +91,7 @@ private:
   std::queue<SocketData> gQueue;
   std::condition_variable gThreadConditionVariable;
 
+  bool bridgeOk;
   volatile bool gRunThread;
 
 #ifdef USE_PTHREAD

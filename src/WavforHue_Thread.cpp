@@ -30,6 +30,7 @@ using namespace ADDON;
 // -- Constructor ----------------------------------------------------
 WavforHue_Thread::WavforHue_Thread()
 {
+  bridgeOk = false;
   gRunThread = false;
 }
 // -- Constructor ----------------------------------------------------
@@ -103,20 +104,23 @@ void WavforHue_Thread::TransferQueueToMain()
   SocketData putData;
   while (!wavforhue.queue.empty())
   {
-    putData = wavforhue.queue.front(); wavforhue.queue.pop();
-    HTTPRequest(putData);
+    putData = wavforhue.queue.front();
+    wavforhue.queue.pop();
+
+    if (bridgeOk)
+      HTTPRequest(putData);
   }
 }
 
 void WavforHue_Thread::TransferQueueToThread()
 {
   SocketData putData;
-
   while (!wavforhue.queue.empty())
   {
     putData = wavforhue.queue.front();
     wavforhue.queue.pop();
     
+    if (bridgeOk)
     { 
       std::lock_guard<std::mutex> lock(gMutex);
       gQueue.push(putData);
@@ -310,6 +314,8 @@ void WavforHue_Thread::GetPriorState()
   wavforhue.SendDebug("Saving the response.");
   wavforhue.SaveState(response);
 
+  // Light states were read from the bridge. So let's assume it's present.
+  bridgeOk = !wavforhue.priorStates.empty();
 }
 
 void WavforHue_Thread::PutPriorState()

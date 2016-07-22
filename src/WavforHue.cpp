@@ -151,7 +151,6 @@ void WavforHue::SaveState(std::string json)
     // Report failures and their locations in the document.
     // Oh I wish I could use debugging in here.
     SendDebug("Failed to parse JSON " + reader.getFormattedErrorMessages());
-    abort();
   }
 
   if (root.size() > 0) {
