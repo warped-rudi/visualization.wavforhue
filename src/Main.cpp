@@ -125,8 +125,9 @@ extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, con
 
   // -- Threading ---------------------------------------------------
   // Put this/these light request on the thread's queue.
-  XBMC->Log(LOG_DEBUG, "Transfering queue to main.");
-  wt.TransferQueueToMain();
+  XBMC->Log(LOG_DEBUG, "Transfering queue to thread.");
+  wt.TransferQueueToThread();
+  wt.StartWorker();
   // -- Threading ---------------------------------------------------
 }
 
@@ -152,11 +153,7 @@ extern "C" void ADDON_Stop()
   // -- Threading ---------------------------------------------------
   //wt.transferQueueToThread(); // This doesn't work.
   // Clean up the thread.
-  wt.gRunThread = false;
-  while (wt.gWorkerThread.joinable())  // Kill 'em all \m/
-  {
-    wt.gWorkerThread.join();
-  }
+  wt.StopWorker();
   // -- Threading ---------------------------------------------------
 
   // -- WavforHue function calls -------------------------------------

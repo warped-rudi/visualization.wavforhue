@@ -30,6 +30,7 @@ using namespace ADDON;
 // -- Constructor ----------------------------------------------------
 WavforHue_Thread::WavforHue_Thread()
 {
+  gRunThread = false;
 }
 // -- Constructor ----------------------------------------------------
 
@@ -40,52 +41,68 @@ WavforHue_Thread::~WavforHue_Thread()
 // -- Destructor ----------------------------------------------------- 
 
 // -- Threading ----------------------------------------------------------
+void WavforHue_Thread::StartWorker()
+{
+  if (!gRunThread)
+  {
+    gRunThread = true;
+
+#ifdef USE_PTHREAD
+    pthread_create(&gWorkerThread, NULL, &WavforHue_Thread::WorkerStub, this);
+#else
+    gWorkerThread = std::thread(&WavforHue_Thread::WorkerThread, this);
+#endif
+  }
+}
+
+void WavforHue_Thread::StopWorker()
+{
+  if (gRunThread)
+  {
+    std::unique_lock<std::mutex> lock(gMutex);  
+    gRunThread = false;
+    gThreadConditionVariable.notify_one();  
+    lock.unlock();
+
+#ifdef USE_PTHREAD
+    pthread_join(gWorkerThread, NULL);
+#else
+    gWorkerThread.join();
+#endif    
+  }
+}
+
 // This thread keeps cURL from puking all over the waveform, suprising it and
 // making it jerk away.
 void WavforHue_Thread::WorkerThread()
 {
-  bool isEmpty;
   SocketData putData;
-  std::queue<SocketData> mQueue;
-  // This thread comes alive when AudioData(), Create() or Start() has put an 
-  // item in the stack. It runs until Destroy() or Stop() sets gRunThread to 
-  // false and joins it. Or something like that. It's actually magic.
-  while (gRunThread || !mQueue.empty())
+
+  std::unique_lock<std::mutex> lock(gMutex);
+
+  while (gRunThread || !gQueue.empty())
   {  
-    //check that an item is on the stack
+    while (!gQueue.empty())
     {
-      std::lock_guard<std::mutex> lock(gMutex);
-      isEmpty = gQueue.empty();
-    }
-    if (isEmpty)
-    {
-      //Wait until AudioData() sends data.
-      std::unique_lock<std::mutex> lock(gMutex);
-      gThreadConditionVariable.wait(lock, [&]{return gReady; });
-    }
-    else
-    {
-      // Get everything off the global queue for local processing
-      std::lock_guard<std::mutex> lock(gMutex);
-      while (!gQueue.empty())
-      {
-        mQueue.push(gQueue.front());
-        gQueue.pop();
-      }
-    }
-    while (!mQueue.empty())
-    {
-      putData = mQueue.front(); mQueue.pop();
+      putData = gQueue.front(); 
+      gQueue.pop();
+      lock.unlock();
+      
       HTTPRequest(putData);
+      
+      lock.lock();
     }
-  }
+
+    if (gRunThread)
+      gThreadConditionVariable.wait(lock);
+  } 
 }
 
 void WavforHue_Thread::TransferQueueToMain()
 {
-	SocketData putData;
-	while (!wavforhue.queue.empty())
-	{
+  SocketData putData;
+  while (!wavforhue.queue.empty())
+  {
     putData = wavforhue.queue.front(); wavforhue.queue.pop();
     HTTPRequest(putData);
   }
@@ -94,28 +111,18 @@ void WavforHue_Thread::TransferQueueToMain()
 void WavforHue_Thread::TransferQueueToThread()
 {
   SocketData putData;
-  gRunThread = true;
-  // Check if the thread is alive yet.
-  if (!gWorkerThread.joinable())
-  {
-    gWorkerThread = std::thread(&WavforHue_Thread::WorkerThread, this);
-  }
+
   while (!wavforhue.queue.empty())
   {
     putData = wavforhue.queue.front();
     wavforhue.queue.pop();
-    //if (gQueue.size() < 10)
-    //{
+    
+    { 
       std::lock_guard<std::mutex> lock(gMutex);
       gQueue.push(putData);
-    //}
+      gThreadConditionVariable.notify_one();
+    }
   }
-  // Let the thread know to start processing.
-  {
-    std::lock_guard<std::mutex> lock(gMutex);
-    gReady = true;
-  }
-  gThreadConditionVariable.notify_one();
 }
 //-- Threading -----------------------------------------------------
 

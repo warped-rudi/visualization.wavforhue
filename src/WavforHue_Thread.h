@@ -50,7 +50,6 @@ KS-  <afedchin>: hardyt_ why u want to use cURL you can just use  CHelper_libXBM
 */
 // -- cURL works in *nix, but is crap in Windows -------------------
 
-
 // -- Threading ----------------------------------------------------
 #include <thread>
 #include <atomic>
@@ -73,9 +72,6 @@ KS-  <afedchin>: hardyt_ why u want to use cURL you can just use  CHelper_libXBM
 class WavforHue_Thread
 {
 public:
-  std::thread gWorkerThread;
-  std::atomic<bool> gRunThread;
-
   WavforHue wavforhue;
   WavforHue_Thread();
   ~WavforHue_Thread();
@@ -85,14 +81,29 @@ public:
   void TransferQueueToThread();
   void TransferQueueToMain();
 
+  void StartWorker();
+  void StopWorker();
+  
 private:
   std::string response;
   
   std::mutex gMutex;
-  std::condition_variable gThreadConditionVariable;
-  
-  bool gReady;
   std::queue<SocketData> gQueue;
+  std::condition_variable gThreadConditionVariable;
+
+  volatile bool gRunThread;
+
+#ifdef USE_PTHREAD
+  static void *WorkerStub(void *arg)
+  {
+    ((WavforHue_Thread *)arg)->WorkerThread();
+    return NULL;
+  }
+  
+  pthread_t gWorkerThread;
+#else
+  std::thread gWorkerThread;
+#endif
 
   static size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp);
   void WorkerThread();
