@@ -156,10 +156,14 @@ void WavforHue::SaveState(std::string json)
 
   if (root.size() > 0) {
     for (Json::ValueIterator itr = root.begin(); itr != root.end(); itr++) {
+      std::string id = itr.key().asString();
+      if (std::stoul(id) == 0)
+        continue;
+
       HueData hueData;
-      hueData.lightIDs.push_back(itr.key().asString());
+      hueData.lightIDs.push_back(id);
       hueData.numberOfLights = 1;
-      if (root[itr.key().asString()]["state"]["on"].asString() == "false")
+      if (root[id]["state"]["on"].asString() == "false")
       {
         // The light was off.
         hueData.off = true;
@@ -172,14 +176,14 @@ void WavforHue::SaveState(std::string json)
         hueData.on = true;
         priorStates.push_back(hueData);
         hueData.on = false;
-        hueData.bri = root[itr.key().asString()]["state"]["bri"].asInt();
-        hueData.hue = root[itr.key().asString()]["state"]["hue"].asInt();
-        hueData.sat = root[itr.key().asString()]["state"]["sat"].asInt();
+        hueData.bri = root[id]["state"]["bri"].asInt();
+        hueData.hue = root[id]["state"]["hue"].asInt();
+        hueData.sat = root[id]["state"]["sat"].asInt();
         hueData.transitionTime = 15;
       }
       
       priorStates.push_back(hueData);
-      SendDebug("Saving hue data for light " + itr.key().asString());
+      SendDebug("Saving hue data for light " + id);
     }
   }
   savedTheStates = true;
