@@ -99,22 +99,10 @@ void WavforHue_Thread::WorkerThread()
   } 
 }
 
-void WavforHue_Thread::TransferQueueToMain()
-{
-  SocketData putData;
-  while (!wavforhue.queue.empty())
-  {
-    putData = wavforhue.queue.front();
-    wavforhue.queue.pop();
-
-    if (bridgeOk)
-      HTTPRequest(putData);
-  }
-}
-
 void WavforHue_Thread::TransferQueueToThread()
 {
   SocketData putData;
+
   while (!wavforhue.queue.empty())
   {
     putData = wavforhue.queue.front();
@@ -126,6 +114,19 @@ void WavforHue_Thread::TransferQueueToThread()
       gQueue.push(putData);
       gThreadConditionVariable.notify_one();
     }
+  }
+}
+
+void WavforHue_Thread::DiscardWorkerJobs()
+{
+  SocketData putData;
+
+  std::lock_guard<std::mutex> lock(gMutex);
+
+  while (!gQueue.empty())
+  {
+    putData = gQueue.front();
+    gQueue.pop();
   }
 }
 //-- Threading -----------------------------------------------------
@@ -317,11 +318,4 @@ void WavforHue_Thread::GetPriorState()
   // Light states were read from the bridge. So let's assume it's present.
   bridgeOk = !wavforhue.priorStates.empty();
 }
-
-void WavforHue_Thread::PutPriorState()
-{
-  wavforhue.RestoreState();
-}
-
-
 // -- HTTP functions -----------------------------------------------

@@ -77,12 +77,11 @@ public:
   ~WavforHue_Thread();
 
   void GetPriorState();
-  void PutPriorState();
-  void TransferQueueToThread();
-  void TransferQueueToMain();
 
   void StartWorker();
   void StopWorker();
+  void DiscardWorkerJobs();
+  void TransferQueueToThread();
   
 private:
   std::string response;

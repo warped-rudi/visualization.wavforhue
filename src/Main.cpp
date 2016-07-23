@@ -111,12 +111,17 @@ extern "C" ADDON_STATUS ADDON_Create(void* hdl, void* props)
 //-----------------------------------------------------------------------------
 extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, const char* szSongName)
 {
+  // Remove pending jobs
+  wt.DiscardWorkerJobs();
+
   // -- WavforHue function calls -------------------------------------
   // Prepare lights - dimming, turning on, etc.
   XBMC->Log(LOG_DEBUG, "Preparing lights");
   if (!wt.wavforhue.savedTheStates)
   {
     XBMC->Log(LOG_DEBUG, "No previous states saved.");
+
+    wt.StopWorker();
     wt.GetPriorState();
   }
   XBMC->Log(LOG_DEBUG, "Applying starting light settings.");
@@ -137,35 +142,20 @@ extern "C" void Start(int iChannels, int iSamplesPerSec, int iBitsPerSample, con
 //-----------------------------------------------------------------------------
 extern "C" void ADDON_Stop()
 {
-
-  /* This doesn't work with threading yet.
   // -- WavforHue function calls -------------------------------------
   // Change the lights to something acceptable.
   if (wt.wavforhue.priorState)
-    wt.PutPriorState();
+    wt.wavforhue.RestoreState();
   else
     wt.wavforhue.Stop();
-  // Put this/these light request on the main queue. 
-  wt.TransferQueueToMain();
   // -- WavforHue function calls -------------------------------------
-  */
 
   // -- Threading ---------------------------------------------------
-  //wt.transferQueueToThread(); // This doesn't work.
-  // Clean up the thread.
-  wt.StopWorker();
+  // Remove pending jobs
+  wt.DiscardWorkerJobs();
+  // Put this/these light request on the thread's queue.
+  wt.TransferQueueToThread();
   // -- Threading ---------------------------------------------------
-
-  // -- WavforHue function calls -------------------------------------
-  // Change the lights to something acceptable.
-  if (wt.wavforhue.priorState)
-    wt.PutPriorState();
-  else
-    wt.wavforhue.Stop();
-  // Put this/these light request on the main queue. This causes delay.
-  wt.TransferQueueToMain();
-  // -- WavforHue function calls -------------------------------------
-
 }
 
 //-- Detroy -------------------------------------------------------------------
@@ -174,6 +164,9 @@ extern "C" void ADDON_Stop()
 //-----------------------------------------------------------------------------
 extern "C" void ADDON_Destroy()
 {
+  // -- Threading ---------------------------------------------------
+  wt.StopWorker();
+  // -- Threading ---------------------------------------------------
 
   if (XBMC)
     SAFE_DELETE(XBMC);
