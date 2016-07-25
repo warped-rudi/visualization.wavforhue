@@ -119,15 +119,10 @@ void WavforHue_Thread::TransferQueueToThread()
 
 void WavforHue_Thread::DiscardWorkerJobs()
 {
-  SocketData putData;
-
   std::lock_guard<std::mutex> lock(gMutex);
 
   while (!gQueue.empty())
-  {
-    putData = gQueue.front();
     gQueue.pop();
-  }
 }
 //-- Threading -----------------------------------------------------
 
